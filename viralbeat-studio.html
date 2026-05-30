@@ -260,15 +260,22 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 .dance-header{padding:22px 28px 12px;background:linear-gradient(180deg,#0f1829 0%,#080d1a 100%);}
 .dance-header .stage-title{color:#e8f0fe;margin-bottom:4px;}
 .dance-header .stage-desc{color:rgba(200,220,255,0.65);}
-.dance-body{display:grid;grid-template-columns:1fr 240px;gap:0;min-height:400px;}
+.dance-body{display:grid;grid-template-columns:1fr 230px;gap:0;min-height:520px;}
 @media(max-width:800px){.dance-body{grid-template-columns:1fr;}}
-.dance-canvas-section{position:relative;background:#080d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 0 0;}
+.dance-main-viewer{position:relative;background:#080d1a;display:flex;flex-direction:column;}
+.dance-ico-corner{position:absolute;top:12px;right:12px;background:rgba(8,13,26,0.88);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:7px 8px 5px;z-index:20;backdrop-filter:blur(3px);}
+.dance-ico-title{font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:rgba(200,220,255,0.45);font-family:'Lora',serif;text-align:center;margin-bottom:4px;}
+.dance-section-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:.06em;color:rgba(200,220,255,0.4);font-family:'Lora',serif;margin-bottom:8px;}
+.dance-assign-meter-row{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+.dance-assign-meter-label{display:flex;justify-content:space-between;align-items:baseline;}
+.dance-assign-meter-band{font-size:0.72rem;font-family:'Lora',serif;font-weight:700;}
+.dance-assign-meter-move{font-size:0.62rem;font-family:'Lora',serif;opacity:0.65;}
 #dance-canvas{display:block;max-width:100%;border-radius:8px;}
 .dance-legend{display:flex;gap:16px;padding:8px 0 10px;justify-content:center;flex-wrap:wrap;}
 .dance-legend-item{font-size:0.75rem;font-family:'Lora',serif;display:flex;align-items:center;gap:5px;}
 .dance-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
 .dance-sidebar{background:#0b1220;border-left:1px solid rgba(255,255,255,0.06);padding:16px 14px;display:flex;flex-direction:column;gap:14px;}
-.dance-viewer-wrap{border-radius:10px;overflow:hidden;flex-shrink:0;position:relative;transition:filter .08s;}
+.dance-viewer-wrap{position:relative;width:100%;height:100%;min-height:500px;overflow:hidden;transform-origin:center center;transition:transform .06s linear,filter .06s linear;}
 .dance-viewer-label{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.5);font-family:'Lora',serif;pointer-events:none;}
 .dance-meters{display:flex;flex-direction:column;gap:8px;}
 .dance-meter-row{display:flex;align-items:center;gap:8px;}
@@ -754,7 +761,6 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
           <div class="move-guide-row"><span style="color:#9B72CF;font-weight:700;">Open 5-fold (vertices)</span> — 12 pentagonal portals at each vertex flare open</div>
           <div class="move-guide-row"><span style="color:#E8C44A;font-weight:700;">Wiggle / vibrate</span> — the whole capsid shakes with micro-vibrations</div>
           <div class="move-guide-row"><span style="color:#4AB5E8;font-weight:700;">Pulse whole capsid</span> — the structure swells and contracts as one</div>
-          <div class="move-guide-row"><span style="color:#c0775a;font-weight:700;">Spin faster</span> — auto-rotation speed scales with the band energy</div>
         </div>
       </div>
     </div>
@@ -794,41 +800,33 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
   <div class="dance-wrap">
     <div class="dance-header">
       <h2 class="stage-title">Capsid Dance</h2>
-      <p class="stage-desc">Play your track and watch the capsid open and close along each symmetry axis in real time. Bass drives the 2-fold edges, harmony drives the 3-fold faces, and melody drives the 5-fold vertices.</p>
+      <p class="stage-desc">Your viral capsid opens and closes with the music based on the assignments you chose. The icosahedron guide in the corner shows which symmetry axes are active in real time.</p>
     </div>
     <div class="dance-body">
 
-      <!-- animated icosahedron canvas -->
-      <div class="dance-canvas-section">
-        <canvas id="dance-canvas" width="480" height="370"></canvas>
-        <div class="dance-legend">
-          <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#E8624A;"></span><span style="color:#E8624A;">2-Fold · Bass</span></span>
-          <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#3DAA6A;"></span><span style="color:#3DAA6A;">3-Fold · Mid</span></span>
-          <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#9B72CF;"></span><span style="color:#9B72CF;">5-Fold · Treble</span></span>
+      <!-- Main: the actual Mol* capsid — animates with the music -->
+      <div class="dance-main-viewer">
+        <div class="dance-viewer-wrap" id="dance-viewer-wrap">
+          <div id="stage-dance-viewer-slot" style="width:100%;height:100%;"></div>
+          <div class="dance-viewer-label" id="dance-virus-name"></div>
+
+          <!-- Symmetry-axis icosahedron guide — top-right overlay -->
+          <div class="dance-ico-corner">
+            <div class="dance-ico-title">SYMMETRY GUIDE</div>
+            <canvas id="dance-canvas" width="200" height="155"></canvas>
+            <div class="dance-legend" style="padding:5px 0 0;">
+              <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#E8624A;"></span><span style="color:#E8624A;">2-fold</span></span>
+              <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#3DAA6A;"></span><span style="color:#3DAA6A;">3-fold</span></span>
+              <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#9B72CF;"></span><span style="color:#9B72CF;">5-fold</span></span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- sidebar: Mol* viewer + meters + controls -->
+      <!-- Right sidebar: band meters + play controls -->
       <div class="dance-sidebar">
-        <div class="dance-viewer-wrap" id="dance-viewer-wrap" style="height:160px;">
-          <div id="stage-dance-viewer-slot" style="width:100%;height:100%;"></div>
-          <div class="dance-viewer-label" id="dance-virus-name"></div>
-        </div>
-
-        <div class="dance-meters">
-          <div class="dance-meter-row">
-            <span class="dance-meter-label" style="color:#E8624A;">2-Fold</span>
-            <div class="dance-meter-track"><div id="meter-bass" class="dance-meter-fill" style="background:#E8624A;box-shadow:0 0 6px #E8624A;"></div></div>
-          </div>
-          <div class="dance-meter-row">
-            <span class="dance-meter-label" style="color:#3DAA6A;">3-Fold</span>
-            <div class="dance-meter-track"><div id="meter-mid" class="dance-meter-fill" style="background:#3DAA6A;box-shadow:0 0 6px #3DAA6A;"></div></div>
-          </div>
-          <div class="dance-meter-row">
-            <span class="dance-meter-label" style="color:#9B72CF;">5-Fold</span>
-            <div class="dance-meter-track"><div id="meter-treble" class="dance-meter-fill" style="background:#9B72CF;box-shadow:0 0 6px #9B72CF;"></div></div>
-          </div>
-        </div>
+        <div class="dance-section-label">Live Bands</div>
+        <div id="dance-assign-meters" class="dance-meters"></div>
 
         <div class="dance-audio-controls">
           <div class="dance-track-name" id="dance-track-name"></div>
@@ -839,7 +837,7 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
     </div>
 
     <div class="dance-nav">
-      <button class="btn" onclick="goToStage(3)" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.15);">← Back to Mapping</button>
+      <button class="btn" onclick="goToStage(3)" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.15);">← Back to Assignments</button>
       <button class="btn btn-primary" onclick="goToStage(4)">Create Card →</button>
     </div>
   </div>
@@ -2705,6 +2703,9 @@ function initDanceStage() {
   if (audioEl && !audioEl.paused) { audioEl.pause(); }
   if (pb) { pb.textContent = '▶ Play'; pb.classList.remove('playing'); }
 
+  // Build assignment-aware band meters
+  buildDanceAssignMeters();
+
   // Start animation loop (even without audio, the icosahedron spins)
   cancelAnimationFrame(danceAnimId);
   danceLoop();
@@ -2772,16 +2773,15 @@ function danceLoop() {
     window.drawDanceFrame(canvas, danceM, danceSmooth, appState.movements);
   }
 
-  // Update equaliser bars
+  // Update all band meter bars
   const toW = v => Math.round(Math.min(100, v * 100 * 2.5)) + '%';
-  const mb = document.getElementById('meter-bass');   if (mb) mb.style.width = toW(danceSmooth.bass);
-  const mm = document.getElementById('meter-mid');    if (mm) mm.style.width = toW(danceSmooth.mid);
-  const mt = document.getElementById('meter-treble'); if (mt) mt.style.width = toW(danceSmooth.treble);
+  ['bass','mid','treble','presence','beat'].forEach(key => {
+    const el = document.getElementById('meter-' + key);
+    if (el) el.style.width = toW(danceSmooth[key] || 0);
+  });
 
-  // Pulse the Mol* viewer brightness with overall energy
-  const energy = (danceSmooth.bass + danceSmooth.mid + danceSmooth.treble) / 3;
-  const vw = document.getElementById('dance-viewer-wrap');
-  if (vw) vw.style.filter = `brightness(${0.75 + energy * 0.7}) saturate(${1 + energy * 0.6})`;
+  // Animate the Mol* capsid via CSS transforms based on movement assignments
+  applyMolstarDanceEffect(danceSmooth, appState.movements);
 
   danceAnimId = requestAnimationFrame(danceLoop);
 }
@@ -2792,7 +2792,70 @@ function stopDanceStage() {
   const audioEl = document.getElementById('audio-el');
   if (audioEl && danceIsPlaying) { audioEl.pause(); danceIsPlaying = false; }
   const vw = document.getElementById('dance-viewer-wrap');
-  if (vw) vw.style.filter = '';
+  if (vw) { vw.style.filter = ''; vw.style.transform = ''; }
+}
+
+function buildDanceAssignMeters() {
+  const container = document.getElementById('dance-assign-meters');
+  if (!container) return;
+  container.innerHTML = '';
+  const BAND_COLOR = { bass:'#E8624A', mid:'#3DAA6A', treble:'#9B72CF', presence:'#E8C44A', beat:'#4AB5E8' };
+  const BAND_NAME  = { bass:'Bass', mid:'Mid / Melody', treble:'Treble', presence:'Vocals', beat:'Beat / Kick' };
+  const MOVE_SHORT = { open2fold:'2-fold open', open3fold:'3-fold open', open5fold:'5-fold open', wiggle:'wiggle', pulse:'pulse', spin:'spin', none:'' };
+  const mvs = appState.movements;
+  const keys = mvs ? Object.keys(BAND_COLOR) : ['bass','mid','treble'];
+  keys.forEach(key => {
+    const cfg = mvs && mvs[key];
+    if (cfg && cfg.movement === 'none') return;
+    const color = BAND_COLOR[key];
+    const name  = BAND_NAME[key];
+    const move  = cfg ? (MOVE_SHORT[cfg.movement] || cfg.movement) : key;
+    container.innerHTML +=
+      `<div class="dance-assign-meter-row">
+        <div class="dance-assign-meter-label">
+          <span class="dance-assign-meter-band" style="color:${color};">${name}</span>
+          <span class="dance-assign-meter-move" style="color:${color};">→ ${move}</span>
+        </div>
+        <div class="dance-meter-track"><div id="meter-${key}" class="dance-meter-fill" style="background:${color};box-shadow:0 0 5px ${color};"></div></div>
+      </div>`;
+  });
+}
+
+function applyMolstarDanceEffect(smooth, movements) {
+  const wrap = document.getElementById('dance-viewer-wrap');
+  if (!wrap) return;
+  let sx = 1, sy = 1, tx = 0, ty = 0, bright = 0.85, sat = 1;
+  if (movements) {
+    const bmap = { bass: smooth.bass, mid: smooth.mid, treble: smooth.treble, presence: smooth.presence, beat: smooth.beat };
+    for (const [key, cfg] of Object.entries(movements)) {
+      if (!cfg || cfg.movement === 'none') continue;
+      const v = (bmap[key] || 0) * (cfg.intensity / 10);
+      switch (cfg.movement) {
+        case 'open2fold':  // rhombic edges breathe — slight horizontal stretch + brightness
+          sx = Math.max(sx, 1 + v * 0.10); sy = Math.max(sy, 1 + v * 0.05);
+          bright = Math.max(bright, 0.85 + v * 0.55); break;
+        case 'open3fold':  // triangular faces bloom — uniform scale + saturation
+          sx = Math.max(sx, 1 + v * 0.09); sy = Math.max(sy, 1 + v * 0.09);
+          sat = Math.max(sat, 1 + v * 0.65); break;
+        case 'open5fold':  // pentagonal vertices flare — strong scale + glow
+          sx = Math.max(sx, 1 + v * 0.16); sy = Math.max(sy, 1 + v * 0.16);
+          bright = Math.max(bright, 0.85 + v * 0.80); sat = Math.max(sat, 1 + v * 1.0); break;
+        case 'wiggle':     // micro-shake
+          tx += (Math.random() - 0.5) * v * 20; ty += (Math.random() - 0.5) * v * 14; break;
+        case 'pulse':      // whole capsid breathes
+          const p = 1 + v * 0.20;
+          sx = Math.max(sx, p); sy = Math.max(sy, p);
+          bright = Math.max(bright, 0.85 + v * 0.40); break;
+        case 'spin':       // add hue warmth
+          sat = Math.max(sat, 1 + v * 0.5); break;
+      }
+    }
+  } else {
+    const energy = (smooth.bass + smooth.mid + smooth.treble) / 3;
+    bright = 0.75 + energy * 0.7; sat = 1 + energy * 0.6;
+  }
+  wrap.style.transform = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) scaleX(${sx.toFixed(3)}) scaleY(${sy.toFixed(3)})`;
+  wrap.style.filter = `brightness(${bright.toFixed(2)}) saturate(${sat.toFixed(2)})`;
 }
 
 function toggleDancePlay() {

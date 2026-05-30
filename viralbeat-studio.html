@@ -420,108 +420,9 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
       <h2>Welcome to ViralBeat Studio</h2>
       <p>In groups of 3–4 students, you will select a real viral capsid, explore its icosahedral symmetry axes interactively in 3D, and map those axes to a piece of music — making the virus "open and close" along its 2-fold, 3-fold, and 5-fold axes in sync with tempo, instruments, bass, and beat. You will also design a collector's card that captures your virus and what you discovered.</p>
     </div>
-    <!-- Watercolour-style icosahedral capsid cartoon -->
+    <!-- Live icosahedron showing pentagons (5-fold), triangles (3-fold), rhombuses (2-fold) -->
     <div class="overview-hero-art" aria-hidden="true">
-      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <!-- Watercolour wash filters -->
-          <filter id="wc1" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="2" result="noise"/>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
-          </filter>
-          <filter id="wcBlur">
-            <feGaussianBlur stdDeviation="1.2"/>
-          </filter>
-          <!-- Pastel watercolour swatches -->
-          <radialGradient id="gBody" cx="48%" cy="45%" r="52%">
-            <stop offset="0%" stop-color="#d4ecd4" stop-opacity="0.95"/>
-            <stop offset="55%" stop-color="#b8d8b8" stop-opacity="0.85"/>
-            <stop offset="100%" stop-color="#8faf8f" stop-opacity="0.7"/>
-          </radialGradient>
-          <radialGradient id="gFace1" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stop-color="#e8d4f0" stop-opacity="0.75"/>
-            <stop offset="100%" stop-color="#c3b1d9" stop-opacity="0.4"/>
-          </radialGradient>
-          <radialGradient id="gFace2" cx="40%" cy="50%" r="60%">
-            <stop offset="0%" stop-color="#fad5cc" stop-opacity="0.7"/>
-            <stop offset="100%" stop-color="#e8937f" stop-opacity="0.35"/>
-          </radialGradient>
-          <radialGradient id="gFace3" cx="55%" cy="45%" r="55%">
-            <stop offset="0%" stop-color="#c8dde8" stop-opacity="0.7"/>
-            <stop offset="100%" stop-color="#a8c5dc" stop-opacity="0.35"/>
-          </radialGradient>
-          <radialGradient id="gSpike" cx="50%" cy="70%" r="60%">
-            <stop offset="0%" stop-color="#f4c5bb" stop-opacity="0.9"/>
-            <stop offset="100%" stop-color="#e8937f" stop-opacity="0.5"/>
-          </radialGradient>
-        </defs>
-
-        <!-- Soft shadow blob -->
-        <ellipse cx="100" cy="175" rx="55" ry="9" fill="rgba(143,175,143,0.18)" filter="url(#wcBlur)"/>
-
-        <!-- Icosahedral body — watercolour wash base -->
-        <polygon points="100,18 158,52 158,118 100,152 42,118 42,52"
-          fill="url(#gBody)" filter="url(#wc1)" opacity="0.92"/>
-
-        <!-- Individual face colour washes -->
-        <!-- Top triangle -->
-        <polygon points="100,18 158,52 100,70" fill="url(#gFace1)" filter="url(#wc1)" opacity="0.7"/>
-        <!-- Left upper -->
-        <polygon points="100,18 42,52 100,70" fill="url(#gFace3)" filter="url(#wc1)" opacity="0.65"/>
-        <!-- Right mid -->
-        <polygon points="158,52 158,118 100,100" fill="url(#gFace2)" filter="url(#wc1)" opacity="0.6"/>
-        <!-- Bottom left -->
-        <polygon points="42,52 42,118 100,100" fill="url(#gFace1)" filter="url(#wc1)" opacity="0.55"/>
-        <!-- Bottom face -->
-        <polygon points="100,100 158,118 100,152" fill="url(#gFace3)" filter="url(#wc1)" opacity="0.6"/>
-        <polygon points="100,100 42,118 100,152" fill="url(#gFace2)" filter="url(#wc1)" opacity="0.55"/>
-
-        <!-- Soft edge lines (sketchy) -->
-        <g stroke="#6b8f6b" stroke-width="1.1" fill="none" opacity="0.45" filter="url(#wc1)">
-          <polygon points="100,18 158,52 158,118 100,152 42,118 42,52"/>
-          <line x1="100" y1="18"  x2="100" y2="70"/>
-          <line x1="100" y1="70"  x2="158" y2="52"/>
-          <line x1="100" y1="70"  x2="42"  y2="52"/>
-          <line x1="100" y1="70"  x2="100" y2="100"/>
-          <line x1="100" y1="100" x2="158" y2="118"/>
-          <line x1="100" y1="100" x2="42"  y2="118"/>
-          <line x1="100" y1="100" x2="100" y2="152"/>
-        </g>
-
-        <!-- 5-fold vertex dots (purple) -->
-        <g filter="url(#wcBlur)" opacity="0.85">
-          <circle cx="100" cy="18"  r="6.5" fill="#c3b1d9"/>
-          <circle cx="158" cy="52"  r="5.5" fill="#c3b1d9"/>
-          <circle cx="42"  cy="52"  r="5.5" fill="#c3b1d9"/>
-          <circle cx="158" cy="118" r="5.5" fill="#c3b1d9"/>
-          <circle cx="42"  cy="118" r="5.5" fill="#c3b1d9"/>
-          <circle cx="100" cy="152" r="6.5" fill="#c3b1d9"/>
-        </g>
-
-        <!-- Spike proteins — watercolour blobs on edges -->
-        <g filter="url(#wc1)" opacity="0.80">
-          <!-- Top spikes -->
-          <ellipse cx="129" cy="8"  rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-30,129,8)"/>
-          <ellipse cx="71"  cy="8"  rx="7" ry="10" fill="url(#gSpike)" transform="rotate(30,71,8)"/>
-          <!-- Right spikes -->
-          <ellipse cx="173" cy="70" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-80,173,70)"/>
-          <ellipse cx="173" cy="100" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-75,173,100)"/>
-          <!-- Left spikes -->
-          <ellipse cx="27"  cy="70" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(80,27,70)"/>
-          <ellipse cx="27"  cy="100" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(75,27,100)"/>
-          <!-- Bottom spikes -->
-          <ellipse cx="129" cy="163" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(30,129,163)"/>
-          <ellipse cx="71"  cy="163" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-30,71,163)"/>
-        </g>
-
-        <!-- Musical note decoration -->
-        <g transform="translate(152,22)" opacity="0.55" fill="#7b5ea7">
-          <text font-size="18" font-family="serif">♪</text>
-        </g>
-        <g transform="translate(20,140)" opacity="0.45" fill="#6b8f6b">
-          <text font-size="13" font-family="serif">♫</text>
-        </g>
-      </svg>
+      <canvas id="welcome-ico-canvas" width="200" height="200" style="display:block;border-radius:16px;background:transparent;"></canvas>
     </div>
   </div>
 
@@ -3071,6 +2972,43 @@ function toggleDancePlay() {
 }
 
 // ============================================================
+// WELCOME PAGE ICOSAHEDRON
+// ============================================================
+function initWelcomeIco() {
+  const canvas = document.getElementById('welcome-ico-canvas');
+  if (!canvas || typeof window.drawDanceFrame !== 'function') return;
+
+  // Minimal matrix helpers (row-major 3×3) — independent of the IIFE internals
+  const _mulM = (A,B) => [
+    A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
+    A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8],
+    A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8]
+  ];
+  const _rotY = a => { const c=Math.cos(a),s=Math.sin(a); return [c,0,s, 0,1,0, -s,0,c]; };
+  const _rotX = a => { const c=Math.cos(a),s=Math.sin(a); return [1,0,0, 0,c,-s, 0,s,c]; };
+
+  // Nice initial orientation: slight upward tilt + diagonal turn
+  let wM = _mulM(_rotY(0.55), _mulM(_rotX(-0.32), [1,0,0,0,1,0,0,0,1]));
+
+  let wAnim = null;
+  function wDraw() {
+    const t = Date.now() * 0.001;
+    wM = _mulM(_rotY(0.004), wM); // slow Y spin
+
+    // Each fold type oscillates with 120° phase offset — all clearly visible (amp ~0.45–0.65)
+    const amp5 = 0.55 + 0.12 * Math.sin(t * 0.65);
+    const amp3 = 0.55 + 0.12 * Math.sin(t * 0.65 + 2.09);
+    const amp2 = 0.55 + 0.12 * Math.sin(t * 0.65 + 4.19);
+
+    // movements=null → bass→s2 (rhombuses), mid→s3f (triangles), treble→s5 (pentagons)
+    window.drawDanceFrame(canvas, wM,
+      { bass: amp2, mid: amp3, treble: amp5, presence: 0, beat: 0 }, null);
+    wAnim = requestAnimationFrame(wDraw);
+  }
+  wDraw();
+}
+
+// ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
@@ -3104,6 +3042,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // 5a. Init icosahedron explorer on the overview page
   icoInitDemo();
+  initWelcomeIco();
 
   // 5. Init main Mol* viewer
   try {

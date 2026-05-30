@@ -771,11 +771,20 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
           <div class="section-title" style="margin:0;">Live Preview</div>
           <div style="display:flex;align-items:center;gap:8px;">
             <button id="s3-play-btn" class="btn btn-secondary" onclick="toggleS3Audio()" style="padding:7px 16px;font-size:0.82rem;">▶ Play</button>
-            <span id="s3-audio-time" style="font-size:0.78rem;color:var(--text-light);">0:00</span>
           </div>
         </div>
         <canvas id="s3-preview-canvas" width="380" height="280" style="width:100%;border-radius:10px;background:#0e1f30;display:block;"></canvas>
-        <p class="text-sm text-light" style="margin-top:6px;">Press ▶ to hear your track and see the capsid respond to each band in real time.</p>
+        <!-- Song scrubber -->
+        <div style="margin-top:10px;">
+          <input type="range" id="s3-scrubber" min="0" max="100" value="0" step="0.1"
+            style="width:100%;accent-color:var(--sage-dark);cursor:pointer;"
+            oninput="s3SeekAudio(this.value)" onmousedown="s3ScrubStart()" onmouseup="s3ScrubEnd()">
+          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-light);margin-top:2px;">
+            <span id="s3-time-current">0:00</span>
+            <span id="s3-time-total">0:00</span>
+          </div>
+        </div>
+        <p class="text-sm text-light" style="margin-top:6px;">Drag the bar to scrub through the song and test different sections.</p>
       </div>
 
       <div class="panel">
@@ -1441,6 +1450,16 @@ function initStage3() {
     BAND_DEFS.forEach(b => { appState.movements[b.key] = { movement: b.default, intensity: 7 }; });
   }
   buildAssignRows();
+  // Seed scrubber with current audio state
+  const _ae = document.getElementById('audio-el');
+  if (_ae && _ae.duration) {
+    const tot = document.getElementById('s3-time-total');
+    const scr = document.getElementById('s3-scrubber');
+    if (tot) tot.textContent = formatTime(_ae.duration);
+    if (scr) { scr.max = _ae.duration; scr.value = _ae.currentTime; }
+    const cur = document.getElementById('s3-time-current');
+    if (cur) cur.textContent = formatTime(_ae.currentTime);
+  }
   if (appState.audioFile && !appState.audioFrames) preprocessAudio();
   startS3Loops();
 }
@@ -1597,6 +1616,20 @@ function updateS3PlayBtn(playing) {
   if (btn) btn.textContent = playing ? '⏸ Pause' : '▶ Play';
 }
 
+// ---- Stage 3 scrubber ----
+let s3Scrubbing = false;
+function s3ScrubStart() { s3Scrubbing = true; }
+function s3ScrubEnd() {
+  s3Scrubbing = false;
+  const audioEl = document.getElementById('audio-el');
+  const scr = document.getElementById('s3-scrubber');
+  if (audioEl && scr) audioEl.currentTime = parseFloat(scr.value);
+}
+function s3SeekAudio(val) {
+  const cur = document.getElementById('s3-time-current');
+  if (cur) cur.textContent = formatTime(parseFloat(val));
+}
+
 // ---- Stage 3 animation loops ----
 function s3GetBands() {
   if (!s3Analyser) return { bass:0, mid:0, treble:0, presence:0, beat:0 };
@@ -1660,12 +1693,21 @@ function startS3Loops() {
     s3SpectrumRAF = requestAnimationFrame(spectrumFrame);
   }
 
-  // update time display
+  // update scrubber + time displays
   const audioEl = document.getElementById('audio-el');
   if (audioEl) {
+    audioEl.addEventListener('loadedmetadata', () => {
+      const tot = document.getElementById('s3-time-total');
+      const scr = document.getElementById('s3-scrubber');
+      if (tot) tot.textContent = formatTime(audioEl.duration);
+      if (scr) scr.max = audioEl.duration || 100;
+    });
     audioEl.addEventListener('timeupdate', () => {
-      const t = document.getElementById('s3-audio-time');
-      if (t) t.textContent = formatTime(audioEl.currentTime);
+      if (s3Scrubbing) return; // don't fight the user's drag
+      const cur = document.getElementById('s3-time-current');
+      const scr = document.getElementById('s3-scrubber');
+      if (cur) cur.textContent = formatTime(audioEl.currentTime);
+      if (scr) scr.value = audioEl.currentTime;
     });
     audioEl.addEventListener('ended', () => updateS3PlayBtn(false));
   }

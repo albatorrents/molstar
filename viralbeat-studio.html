@@ -2577,7 +2577,7 @@ function showToast(msg) {
           case 'open3fold': s3f  = Math.max(s3f,  amt*0.85); break;
           case 'open5fold': s5   = Math.max(s5,   amt*0.85); break;
           case 'wiggle':    wigAmp = Math.max(wigAmp, amt);  break;
-          case 'pulse':     scaleAll += amt*0.22;            break;
+          case 'pulse':     scaleAll += amt*0.55;            break;
         }
       };
       applyBand(bass,     movements.bass);
@@ -2592,6 +2592,15 @@ function showToast(msg) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
+
+    // Wiggle: jitter the whole canvas drawing randomly each frame
+    ctx.save();
+    if (wigAmp > 0.01) {
+      ctx.translate(
+        (Math.random() - 0.5) * wigAmp * 26,
+        (Math.random() - 0.5) * wigAmp * 20
+      );
+    }
 
     const energy = Math.min(1, (s2*0.4 + s3f*0.35 + s5*0.25 + (scaleAll-1)*0.5));
     const breathe = scaleAll;
@@ -2659,10 +2668,10 @@ function showToast(msg) {
       ctx.restore();
     }
 
-    // 2-fold rhombuses (s2) — expand corners away from edge midpoint
+    // 2-fold rhombuses (s2) — expand corners away from edge midpoint (axis at center)
     pts2.forEach(pt => {
       if (s2 < 0.015) return;
-      const sc = 1 + s2 * 0.55;
+      const sc = 1 + s2 * 1.1;
       const c = pt.pos, cr = applyM(M, c);
       const [a, b] = E[pt.ei];
       const key = Math.min(a,b)+'-'+Math.max(a,b);
@@ -2674,10 +2683,10 @@ function showToast(msg) {
       drawExpanded(exp, cr[2], '#E8624A', s2, 1.5);
     });
 
-    // 3-fold triangles (s3f) — expand corners away from face centre
+    // 3-fold triangles (s3f) — expand corners away from face centre (axis at center)
     pts3.forEach(pt => {
       if (s3f < 0.015) return;
-      const sc = 1 + s3f * 0.55;
+      const sc = 1 + s3f * 1.1;
       const c = pt.pos, cr = applyM(M, c);
       const [a, b, cv] = F[pt.fi];
       const exp = [V[a],V[b],V[cv]].map(v =>
@@ -2686,10 +2695,10 @@ function showToast(msg) {
       drawExpanded(exp, cr[2], '#3DAA6A', s3f, 1.5);
     });
 
-    // 5-fold pentagons (s5) — expand corners away from vertex
+    // 5-fold pentagons (s5) — expand corners away from vertex (axis at center)
     pts5.forEach(pt => {
       if (s5 < 0.015) return;
-      const sc = 1 + s5 * 0.55;
+      const sc = 1 + s5 * 1.1;
       const c = pt.pos, cr = applyM(M, c);
       const exp = sortedNbr(pt.vi).map(ni => {
         const v = V[ni];
@@ -2698,15 +2707,26 @@ function showToast(msg) {
       drawExpanded(exp, cr[2], '#9B72CF', s5, 1.5);
     });
 
-    // Axis-centre dots pulsing with their band
+    // Axis-centre markers — always visible at base opacity, glow brighter when active
     [[pts2,'#E8624A',s2],[pts3,'#3DAA6A',s3f],[pts5,'#9B72CF',s5]].forEach(([pts,col,amp])=>{
       pts.forEach(pt=>{
-        const rz=applyM(M,pt.pos)[2], alpha=(rz<0?1:0.1)*Math.min(1,amp*2);
-        if(alpha<0.01) return;
-        const pp=pr(pt.pos);
-        drawDot(ctx, pp[0], pp[1], col, 3+amp*3, alpha);
+        const rz  = applyM(M, pt.pos)[2];
+        const front = rz < 0;
+        const baseA = front ? 0.38 : 0.07;          // always shown
+        const alpha = Math.min(baseA + amp * (front ? 1.0 : 0.12), 1);
+        const pp  = pr(pt.pos);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        if (amp > 0.08) { ctx.shadowColor = col; ctx.shadowBlur = 6 + amp * 20; }
+        ctx.beginPath();
+        ctx.arc(pp[0], pp[1], 2.5 + amp * 6, 0, Math.PI * 2);
+        ctx.fillStyle = col;
+        ctx.fill();
+        ctx.restore();
       });
     });
+
+    ctx.restore(); // end wiggle transform
   };
 })();
 

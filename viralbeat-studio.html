@@ -206,6 +206,100 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 #readonly-view{display:none;max-width:800px;margin:40px auto;padding:24px;}
 #readonly-view.visible{display:block;}
 
+/* STAGE 0 – OVERVIEW */
+.overview-hero{background:white;border-radius:20px;padding:36px 36px 32px;margin-bottom:28px;box-shadow:0 2px 20px rgba(0,0,0,0.07);display:flex;align-items:center;gap:32px;}
+.overview-hero-text{flex:1;}
+.overview-hero h2{font-size:2rem;font-weight:800;color:var(--sage-dark);margin-bottom:10px;line-height:1.2;text-align:left;}
+.overview-hero p{font-size:1rem;color:var(--text-mid);line-height:1.7;text-align:left;}
+.overview-hero-art{flex-shrink:0;width:200px;}
+.overview-hero-art svg{width:100%;height:auto;display:block;}
+@media(max-width:700px){.overview-hero{flex-direction:column;}.overview-hero-art{width:140px;order:-1;}}
+.overview-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px;}
+@media(max-width:800px){.overview-steps{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.overview-steps{grid-template-columns:1fr;}}
+.overview-step{background:white;border-radius:14px;padding:18px 14px;box-shadow:0 2px 12px rgba(0,0,0,0.07);text-align:center;}
+.overview-step-icon{font-size:1.8rem;margin-bottom:8px;}
+.overview-step-num{font-size:0.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px;}
+.overview-step-title{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:6px;}
+.overview-step-desc{font-size:0.78rem;color:var(--text-mid);line-height:1.5;}
+.overview-concept{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
+@media(max-width:700px){.overview-concept{grid-template-columns:1fr;}}
+.concept-card{background:white;border-radius:14px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.07);}
+.concept-card h3{font-size:1rem;color:var(--text);margin-bottom:10px;}
+.concept-card p{font-size:0.88rem;color:var(--text-mid);line-height:1.65;}
+.concept-card ul{list-style:none;padding:0;margin:10px 0 0;}
+.concept-card ul li{font-size:0.85rem;color:var(--text-mid);padding:5px 0;border-bottom:1px solid var(--cream-dark);display:flex;align-items:flex-start;gap:8px;line-height:1.5;}
+.concept-card ul li:last-child{border-bottom:none;}
+.concept-card ul li::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.li-rose::before{background:var(--rose);}
+.li-sage::before{background:var(--sage);}
+.li-lavender::before{background:var(--lavender);}
+.sym-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;margin:4px;}
+.sym-badge.b2{background:var(--rose-light);color:#b05540;}
+.sym-badge.b3{background:var(--sage-light);color:var(--sage-dark);}
+.sym-badge.b5{background:var(--lavender-light);color:#7B5EA7;}
+
+/* CAPSID DANCE */
+.dance-wrap{background:#080d1a;border-radius:16px;overflow:hidden;margin-bottom:0;}
+.dance-header{padding:22px 28px 12px;background:linear-gradient(180deg,#0f1829 0%,#080d1a 100%);}
+.dance-header .stage-title{color:#e8f0fe;margin-bottom:4px;}
+.dance-header .stage-desc{color:rgba(200,220,255,0.65);}
+.dance-body{display:grid;grid-template-columns:1fr 240px;gap:0;min-height:400px;}
+@media(max-width:800px){.dance-body{grid-template-columns:1fr;}}
+.dance-canvas-section{position:relative;background:#080d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 0 0;}
+#dance-canvas{display:block;max-width:100%;border-radius:8px;}
+.dance-legend{display:flex;gap:16px;padding:8px 0 10px;justify-content:center;flex-wrap:wrap;}
+.dance-legend-item{font-size:0.75rem;font-family:'Lora',serif;display:flex;align-items:center;gap:5px;}
+.dance-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.dance-sidebar{background:#0b1220;border-left:1px solid rgba(255,255,255,0.06);padding:16px 14px;display:flex;flex-direction:column;gap:14px;}
+.dance-viewer-wrap{border-radius:10px;overflow:hidden;flex-shrink:0;position:relative;transition:filter .08s;}
+.dance-viewer-label{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.5);font-family:'Lora',serif;pointer-events:none;}
+.dance-meters{display:flex;flex-direction:column;gap:8px;}
+.dance-meter-row{display:flex;align-items:center;gap:8px;}
+.dance-meter-label{font-size:0.72rem;font-family:'Lora',serif;width:44px;flex-shrink:0;font-weight:700;}
+.dance-meter-track{flex:1;height:7px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;}
+.dance-meter-fill{height:100%;width:0%;border-radius:4px;transition:width .07s linear;}
+.dance-audio-controls{margin-top:auto;display:flex;flex-direction:column;gap:8px;}
+.dance-track-name{font-size:0.72rem;color:rgba(200,220,255,0.55);font-family:'Lora',serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dance-play-btn{width:100%;padding:9px 0;border-radius:8px;border:none;background:var(--sage);color:white;cursor:pointer;font-family:'Lora',serif;font-size:0.88rem;font-weight:700;transition:background .2s;}
+.dance-play-btn:hover{background:var(--sage-dark);}
+.dance-play-btn.playing{background:#C97060;}
+.dance-play-btn.playing:hover{background:#b05540;}
+.dance-no-audio{font-size:0.75rem;color:rgba(200,220,255,0.4);text-align:center;padding:8px;font-style:italic;}
+.dance-nav{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background:#0b1220;border-top:1px solid rgba(255,255,255,0.06);}
+
+/* ICO EXPLORER */
+.overview-concept{align-items:start;}
+.ico-explorer{padding:16px 16px 18px;}
+.ico-canvas-wrap{display:flex;justify-content:center;margin:8px 0;}
+.ico-canvas-wrap canvas{cursor:grab;border-radius:10px;background:#1a1a2e;display:block;max-width:100%;}
+.ico-canvas-wrap canvas:active{cursor:grabbing;}
+.ico-axis-btns{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;}
+.ico-axis-btn{padding:5px 13px;border-radius:16px;border:2px solid;background:white;cursor:pointer;font-family:'Lora',serif;font-size:0.78rem;font-weight:600;transition:all .15s;}
+.ico-axis-btn.fold5{border-color:#9B72CF;color:#7B5EA7;}
+.ico-axis-btn.fold3{border-color:var(--sage);color:var(--sage-dark);}
+.ico-axis-btn.fold2{border-color:var(--rose);color:#b05540;}
+.ico-axis-btn.active.fold5{background:#9B72CF;color:white;}
+.ico-axis-btn.active.fold3{background:var(--sage);color:white;}
+.ico-axis-btn.active.fold2{background:var(--rose);color:white;}
+.ico-desc{font-size:0.80rem;color:var(--text-mid);text-align:center;min-height:46px;line-height:1.55;padding:0 4px;margin-bottom:10px;}
+.ico-quiz-prompt{font-size:0.85rem;font-weight:700;color:var(--text);text-align:center;margin:4px 0 2px;}
+.ico-quiz-sub{font-size:0.73rem;color:var(--text-light);text-align:center;margin-bottom:4px;}
+.ico-ans-btns{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.ico-ans-btn{padding:7px 15px;border-radius:8px;border:2px solid;background:white;cursor:pointer;font-family:'Lora',serif;font-size:0.80rem;font-weight:600;transition:all .15s;}
+.ico-ans-btn.ans5{border-color:#9B72CF;color:#7B5EA7;}
+.ico-ans-btn.ans3{border-color:var(--sage);color:var(--sage-dark);}
+.ico-ans-btn.ans2{border-color:var(--rose);color:#b05540;}
+.ico-ans-btn:disabled{opacity:0.5;cursor:default;}
+.ico-ans-btn.correct{background:#4CAF50!important;border-color:#4CAF50!important;color:white!important;}
+.ico-ans-btn.wrong{background:var(--rose)!important;border-color:var(--rose)!important;color:white!important;}
+.ico-feedback{padding:8px 10px;border-radius:8px;font-size:0.80rem;line-height:1.5;margin:6px 0;}
+.ico-feedback.correct{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;}
+.ico-feedback.wrong{background:#fce4ec;color:#c62828;border:1px solid #f48fb1;}
+.ico-score-bar{font-size:0.82rem;color:var(--text-mid);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ico-final-score{background:linear-gradient(135deg,var(--sage-light),var(--lavender-light));padding:10px 12px;border-radius:10px;text-align:center;font-weight:700;font-size:0.88rem;margin-bottom:6px;}
+.ico-back-btn{background:none;border:none;color:var(--text-light);cursor:pointer;font-size:0.78rem;font-family:'Lora',serif;margin-bottom:4px;padding:0;text-decoration:underline;}
+
 /* Two-col layout helpers */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:700px){.two-col{grid-template-columns:1fr;}}
@@ -296,6 +390,206 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
   <button class="btn btn-secondary" onclick="startFresh()" style="padding:8px 16px;font-size:0.85rem;">Start Fresh</button>
 </div>
 
+<!-- =================== STAGE 0 – OVERVIEW =================== -->
+<div id="stage-0" class="stage">
+  <div class="overview-hero">
+    <div class="overview-hero-text">
+      <h2>Welcome to ViralBeat Studio</h2>
+      <p>In groups of 3–4 students, you will select a real viral capsid, explore its icosahedral symmetry axes interactively in 3D, and map those axes to a piece of music — making the virus "open and close" along its 2-fold, 3-fold, and 5-fold axes in sync with tempo, instruments, bass, and beat. You will also design a collector's card that captures your virus and what you discovered.</p>
+    </div>
+    <!-- Watercolour-style icosahedral capsid cartoon -->
+    <div class="overview-hero-art" aria-hidden="true">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Watercolour wash filters -->
+          <filter id="wc1" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="2" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+          <filter id="wcBlur">
+            <feGaussianBlur stdDeviation="1.2"/>
+          </filter>
+          <!-- Pastel watercolour swatches -->
+          <radialGradient id="gBody" cx="48%" cy="45%" r="52%">
+            <stop offset="0%" stop-color="#d4ecd4" stop-opacity="0.95"/>
+            <stop offset="55%" stop-color="#b8d8b8" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#8faf8f" stop-opacity="0.7"/>
+          </radialGradient>
+          <radialGradient id="gFace1" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#e8d4f0" stop-opacity="0.75"/>
+            <stop offset="100%" stop-color="#c3b1d9" stop-opacity="0.4"/>
+          </radialGradient>
+          <radialGradient id="gFace2" cx="40%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#fad5cc" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#e8937f" stop-opacity="0.35"/>
+          </radialGradient>
+          <radialGradient id="gFace3" cx="55%" cy="45%" r="55%">
+            <stop offset="0%" stop-color="#c8dde8" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#a8c5dc" stop-opacity="0.35"/>
+          </radialGradient>
+          <radialGradient id="gSpike" cx="50%" cy="70%" r="60%">
+            <stop offset="0%" stop-color="#f4c5bb" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#e8937f" stop-opacity="0.5"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Soft shadow blob -->
+        <ellipse cx="100" cy="175" rx="55" ry="9" fill="rgba(143,175,143,0.18)" filter="url(#wcBlur)"/>
+
+        <!-- Icosahedral body — watercolour wash base -->
+        <polygon points="100,18 158,52 158,118 100,152 42,118 42,52"
+          fill="url(#gBody)" filter="url(#wc1)" opacity="0.92"/>
+
+        <!-- Individual face colour washes -->
+        <!-- Top triangle -->
+        <polygon points="100,18 158,52 100,70" fill="url(#gFace1)" filter="url(#wc1)" opacity="0.7"/>
+        <!-- Left upper -->
+        <polygon points="100,18 42,52 100,70" fill="url(#gFace3)" filter="url(#wc1)" opacity="0.65"/>
+        <!-- Right mid -->
+        <polygon points="158,52 158,118 100,100" fill="url(#gFace2)" filter="url(#wc1)" opacity="0.6"/>
+        <!-- Bottom left -->
+        <polygon points="42,52 42,118 100,100" fill="url(#gFace1)" filter="url(#wc1)" opacity="0.55"/>
+        <!-- Bottom face -->
+        <polygon points="100,100 158,118 100,152" fill="url(#gFace3)" filter="url(#wc1)" opacity="0.6"/>
+        <polygon points="100,100 42,118 100,152" fill="url(#gFace2)" filter="url(#wc1)" opacity="0.55"/>
+
+        <!-- Soft edge lines (sketchy) -->
+        <g stroke="#6b8f6b" stroke-width="1.1" fill="none" opacity="0.45" filter="url(#wc1)">
+          <polygon points="100,18 158,52 158,118 100,152 42,118 42,52"/>
+          <line x1="100" y1="18"  x2="100" y2="70"/>
+          <line x1="100" y1="70"  x2="158" y2="52"/>
+          <line x1="100" y1="70"  x2="42"  y2="52"/>
+          <line x1="100" y1="70"  x2="100" y2="100"/>
+          <line x1="100" y1="100" x2="158" y2="118"/>
+          <line x1="100" y1="100" x2="42"  y2="118"/>
+          <line x1="100" y1="100" x2="100" y2="152"/>
+        </g>
+
+        <!-- 5-fold vertex dots (purple) -->
+        <g filter="url(#wcBlur)" opacity="0.85">
+          <circle cx="100" cy="18"  r="6.5" fill="#c3b1d9"/>
+          <circle cx="158" cy="52"  r="5.5" fill="#c3b1d9"/>
+          <circle cx="42"  cy="52"  r="5.5" fill="#c3b1d9"/>
+          <circle cx="158" cy="118" r="5.5" fill="#c3b1d9"/>
+          <circle cx="42"  cy="118" r="5.5" fill="#c3b1d9"/>
+          <circle cx="100" cy="152" r="6.5" fill="#c3b1d9"/>
+        </g>
+
+        <!-- Spike proteins — watercolour blobs on edges -->
+        <g filter="url(#wc1)" opacity="0.80">
+          <!-- Top spikes -->
+          <ellipse cx="129" cy="8"  rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-30,129,8)"/>
+          <ellipse cx="71"  cy="8"  rx="7" ry="10" fill="url(#gSpike)" transform="rotate(30,71,8)"/>
+          <!-- Right spikes -->
+          <ellipse cx="173" cy="70" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-80,173,70)"/>
+          <ellipse cx="173" cy="100" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-75,173,100)"/>
+          <!-- Left spikes -->
+          <ellipse cx="27"  cy="70" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(80,27,70)"/>
+          <ellipse cx="27"  cy="100" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(75,27,100)"/>
+          <!-- Bottom spikes -->
+          <ellipse cx="129" cy="163" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(30,129,163)"/>
+          <ellipse cx="71"  cy="163" rx="7" ry="10" fill="url(#gSpike)" transform="rotate(-30,71,163)"/>
+        </g>
+
+        <!-- Musical note decoration -->
+        <g transform="translate(152,22)" opacity="0.55" fill="#7b5ea7">
+          <text font-size="18" font-family="serif">♪</text>
+        </g>
+        <g transform="translate(20,140)" opacity="0.45" fill="#6b8f6b">
+          <text font-size="13" font-family="serif">♫</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="overview-steps">
+    <div class="overview-step">
+      <div class="overview-step-icon">🦠</div>
+      <div class="overview-step-num">Stage 1</div>
+      <div class="overview-step-title">Capsid Selection</div>
+      <div class="overview-step-desc">Pick a real virus from our library and explore its 3D capsid structure with interactive symmetry-axis overlays.</div>
+    </div>
+    <div class="overview-step">
+      <div class="overview-step-icon">🎵</div>
+      <div class="overview-step-num">Stage 2</div>
+      <div class="overview-step-title">Music Import</div>
+      <div class="overview-step-desc">Find a song online, convert it to MP3, and upload it to the studio — the track that your capsid will dance to.</div>
+    </div>
+    <div class="overview-step">
+      <div class="overview-step-icon">🎚️</div>
+      <div class="overview-step-num">Stage 3</div>
+      <div class="overview-step-title">Dancing Capsid</div>
+      <div class="overview-step-desc">Assign each fold axis a musical element and be the DJ — your capsid will open and close with the beat of your song.</div>
+    </div>
+    <div class="overview-step">
+      <div class="overview-step-icon">🃏</div>
+      <div class="overview-step-num">Stage 4</div>
+      <div class="overview-step-title">Capsid Card</div>
+      <div class="overview-step-desc">Create a collector's card with a 2D snapshot of your capsid, its symmetry geometry, habitat, diseases, and a fun fact.</div>
+    </div>
+    <div class="overview-step">
+      <div class="overview-step-icon">📤</div>
+      <div class="overview-step-num">Stage 5</div>
+      <div class="overview-step-title">Save &amp; Share</div>
+      <div class="overview-step-desc">Download your card and session data, copy a shareable link, or present your work to the class in full-screen mode.</div>
+    </div>
+  </div>
+
+  <div class="overview-concept">
+    <div class="concept-card">
+      <h3>What is icosahedral symmetry?</h3>
+      <p>Most viral capsids are built from identical protein subunits arranged with icosahedral symmetry — the same geometry as a soccer ball or a d20 die. This arrangement minimises the amount of genetic material needed to encode the shell while maximising its stability.</p>
+      <p style="margin-top:10px;">An icosahedron has <strong>60 symmetry operations</strong>, expressed through three families of rotation axes:</p>
+      <ul>
+        <li class="li-rose"><strong>2-Fold axes</strong> (15 total) — pass through each of the 30 edges. Rotating 180° maps the capsid onto itself.</li>
+        <li class="li-sage"><strong>3-Fold axes</strong> (10 total) — pass through each triangular face centre. Rotating 120° maps the capsid onto itself.</li>
+        <li class="li-lavender"><strong>5-Fold axes</strong> (6 total) — pass through each vertex. Rotating 72° maps the capsid onto itself.</li>
+      </ul>
+    </div>
+    <div class="concept-card ico-explorer">
+      <h3>Find the Symmetry Axes</h3>
+
+      <!-- ── DEMO PHASE ── -->
+      <div id="ico-phase-demo">
+        <p style="font-size:0.80rem;color:var(--text-mid);text-align:center;margin-bottom:6px;">Select an axis type to highlight it on the icosahedron. Drag to rotate.</p>
+        <div class="ico-canvas-wrap">
+          <canvas id="ico-demo-canvas" width="300" height="220"></canvas>
+        </div>
+        <div class="ico-axis-btns">
+          <button class="ico-axis-btn fold5" id="ico-demo-btn-fold5" onclick="icoShowAxis('fold5')">◆ 5-Fold (vertices)</button>
+          <button class="ico-axis-btn fold3" id="ico-demo-btn-fold3" onclick="icoShowAxis('fold3')">▲ 3-Fold (face centres)</button>
+          <button class="ico-axis-btn fold2" id="ico-demo-btn-fold2" onclick="icoShowAxis('fold2')">● 2-Fold (edge midpoints)</button>
+        </div>
+        <p class="ico-desc" id="ico-demo-desc">Click a button above to highlight that family of symmetry axes.</p>
+        <div style="text-align:center;">
+          <button class="btn btn-primary" onclick="icoStartQuiz()" style="font-size:0.82rem;padding:8px 20px;">I've got it — Test Myself →</button>
+        </div>
+      </div>
+
+      <!-- ── QUIZ PHASE ── -->
+      <div id="ico-phase-quiz" style="display:none;">
+        <button class="ico-back-btn" onclick="icoBackToDemo()">← Back to Demo</button>
+        <p class="ico-quiz-prompt" id="ico-quiz-prompt"></p>
+        <p class="ico-quiz-sub">The gold dot marks the axis point. Drag to inspect from any angle.</p>
+        <div class="ico-canvas-wrap">
+          <canvas id="ico-quiz-canvas" width="300" height="220"></canvas>
+        </div>
+        <div class="ico-ans-btns">
+          <button class="ico-ans-btn ans5" id="ico-ans-btn-fold5" onclick="icoAnswer('fold5')">◆ 5-Fold</button>
+          <button class="ico-ans-btn ans3" id="ico-ans-btn-fold3" onclick="icoAnswer('fold3')">▲ 3-Fold</button>
+          <button class="ico-ans-btn ans2" id="ico-ans-btn-fold2" onclick="icoAnswer('fold2')">● 2-Fold</button>
+        </div>
+        <div id="ico-quiz-feedback"></div>
+        <div id="ico-quiz-score" style="margin-top:6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;">
+    <button class="btn btn-primary" onclick="goToStage(1)" style="font-size:1rem;padding:14px 32px;">Begin the Activity →</button>
+  </div>
+</div>
+
 <!-- =================== STAGE 1 =================== -->
 <div id="stage-1" class="stage">
   <h2 class="stage-title">Stage 1 — Capsid Selection</h2>
@@ -338,7 +632,8 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
         <button class="axis-btn fold5" id="btn-fold5" onclick="toggleAxis('fold5')">5-Fold Axes</button>
       </div>
 
-      <div style="margin-top:20px;">
+      <div style="margin-top:20px;display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-secondary" onclick="goToStage(0)">← Back to Overview</button>
         <button class="btn btn-primary" id="confirm-capsid-btn" onclick="goToStage(2)" disabled>Confirm Capsid →</button>
       </div>
     </div>
@@ -467,7 +762,7 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
       </div>
 
       <div style="margin-top:20px;">
-        <button class="btn btn-primary" onclick="goToStage(4)">Finalize Mapping →</button>
+        <button class="btn btn-primary" onclick="goToStage('dance')">Finalize Mapping →</button>
       </div>
     </div>
 
@@ -483,6 +778,62 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
 </div>
 
 <!-- =================== STAGE 4 =================== -->
+<!-- =================== STAGE DANCE =================== -->
+<div id="stage-dance" class="stage">
+  <div class="dance-wrap">
+    <div class="dance-header">
+      <h2 class="stage-title">Capsid Dance</h2>
+      <p class="stage-desc">Play your track and watch the capsid open and close along each symmetry axis in real time. Bass drives the 2-fold edges, harmony drives the 3-fold faces, and melody drives the 5-fold vertices.</p>
+    </div>
+    <div class="dance-body">
+
+      <!-- animated icosahedron canvas -->
+      <div class="dance-canvas-section">
+        <canvas id="dance-canvas" width="480" height="370"></canvas>
+        <div class="dance-legend">
+          <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#E8624A;"></span><span style="color:#E8624A;">2-Fold · Bass</span></span>
+          <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#3DAA6A;"></span><span style="color:#3DAA6A;">3-Fold · Mid</span></span>
+          <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#9B72CF;"></span><span style="color:#9B72CF;">5-Fold · Treble</span></span>
+        </div>
+      </div>
+
+      <!-- sidebar: Mol* viewer + meters + controls -->
+      <div class="dance-sidebar">
+        <div class="dance-viewer-wrap" id="dance-viewer-wrap" style="height:160px;">
+          <div id="stage-dance-viewer-slot" style="width:100%;height:100%;"></div>
+          <div class="dance-viewer-label" id="dance-virus-name"></div>
+        </div>
+
+        <div class="dance-meters">
+          <div class="dance-meter-row">
+            <span class="dance-meter-label" style="color:#E8624A;">2-Fold</span>
+            <div class="dance-meter-track"><div id="meter-bass" class="dance-meter-fill" style="background:#E8624A;box-shadow:0 0 6px #E8624A;"></div></div>
+          </div>
+          <div class="dance-meter-row">
+            <span class="dance-meter-label" style="color:#3DAA6A;">3-Fold</span>
+            <div class="dance-meter-track"><div id="meter-mid" class="dance-meter-fill" style="background:#3DAA6A;box-shadow:0 0 6px #3DAA6A;"></div></div>
+          </div>
+          <div class="dance-meter-row">
+            <span class="dance-meter-label" style="color:#9B72CF;">5-Fold</span>
+            <div class="dance-meter-track"><div id="meter-treble" class="dance-meter-fill" style="background:#9B72CF;box-shadow:0 0 6px #9B72CF;"></div></div>
+          </div>
+        </div>
+
+        <div class="dance-audio-controls">
+          <div class="dance-track-name" id="dance-track-name"></div>
+          <button class="dance-play-btn" id="dance-play-btn" onclick="toggleDancePlay()">▶ Play</button>
+          <div class="dance-no-audio" id="dance-no-audio" style="display:none;">No track loaded — go back to Stage 2 to add music.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dance-nav">
+      <button class="btn" onclick="goToStage(3)" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.15);">← Back to Mapping</button>
+      <button class="btn btn-primary" onclick="goToStage(4)">Create Card →</button>
+    </div>
+  </div>
+</div>
+
 <div id="stage-4" class="stage">
   <h2 class="stage-title">Stage 4 — Capsid Card Creator</h2>
   <p class="stage-desc">Design your scientific trading card.</p>
@@ -723,7 +1074,7 @@ function subscribeAxisCanvas() {
 // GLOBAL STATE
 // ============================================================
 const appState = {
-  currentStage: 1,
+  currentStage: 0,
   completedStages: new Set(),
   selectedVirus: null,
   activeHost: 'human',
@@ -1386,11 +1737,14 @@ function exitPresentation() {
 // STAGE NAVIGATION
 // ============================================================
 function goToStage(n) {
-  // Validate forward progression
-  if (n > 1 && !appState.selectedVirus) { showToast('Please select a virus first.'); return; }
-  // Mark current stage as completed when advancing
-  if (n > appState.currentStage) {
-    appState.completedStages.add(appState.currentStage);
+  // Validate: need a virus for anything past the overview
+  if (n !== 0 && n !== 1 && !appState.selectedVirus) { showToast('Please select a virus first (Stage 1 — Capsid Selection).'); return; }
+  // Mark current stage completed when advancing (dance counts as "between 3 and 4")
+  const cur = appState.currentStage;
+  const nNum = n === 'dance' ? 3.5 : (typeof n === 'number' ? n : 0);
+  const curNum = cur === 'dance' ? 3.5 : (typeof cur === 'number' ? cur : 0);
+  if (nNum > curNum && typeof cur === 'number') {
+    appState.completedStages.add(cur);
   }
   appState.currentStage = n;
   renderProgress();
@@ -1403,8 +1757,11 @@ function showStage(n) {
   const el = document.getElementById('stage-' + n);
   if (el) el.classList.add('active');
 
+  // Stop dance if navigating away from it
+  if (appState.currentStage === 'dance') stopDanceStage();
+
   // Move viewer to appropriate slot
-  const slotMap = { 1: 'stage-1-viewer-slot', 2: 'stage-2-viewer-slot', 3: 'stage-3-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
+  const slotMap = { 0: null, 1: 'stage-1-viewer-slot', 2: 'stage-2-viewer-slot', 3: 'stage-3-viewer-slot', dance: 'stage-dance-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
   const slot = slotMap[n];
   if (slot) {
     moveViewerToSlot(slot);
@@ -1425,6 +1782,11 @@ function showStage(n) {
       updateOrientDiagram(fold, appState.mappings[fold].x);
     });
     updateSummaryTable();
+  } else if (n === 'dance') {
+    stopSpin();
+    document.getElementById('molstar-main-wrap').style.transform = '';
+    document.getElementById('molstar-main-wrap').style.filter = '';
+    initDanceStage();
   } else if (n === 4) {
     initStage4();
   } else if (n === 5) {
@@ -1437,21 +1799,22 @@ function showStage(n) {
 // ============================================================
 // PROGRESS BAR
 // ============================================================
-const stageLabels = ['Capsid Selection','Music Import','Symmetry Mapping','Create Card','Save & Share'];
+const stageLabels = ['Overview','Capsid Selection','Music Import','Symmetry Mapping','Create Card','Save & Share'];
 
 function renderProgress() {
   const bar = document.getElementById('progress-bar');
+  // Progress bar only shows stages 1-5 (overview is the pre-stage screen)
+  if (appState.currentStage === 0) { bar.innerHTML = ''; return; }
   let html = '';
   for (let i = 1; i <= 5; i++) {
     const isCompleted = appState.completedStages.has(i);
     const isActive = appState.currentStage === i;
-    const isFuture = !isCompleted && !isActive;
     let cls = isCompleted ? 'completed' : isActive ? 'active' : 'future';
     const clickable = isCompleted ? `onclick="navigateToCompleted(${i})"` : '';
     html += `<div class="step-wrap">
       <div class="step-node ${cls}" ${clickable}>
         ${isCompleted ? '✓' : i}
-        <span class="step-label">${stageLabels[i-1]}</span>
+        <span class="step-label">${stageLabels[i]}</span>
       </div>
       ${i < 5 ? `<div class="step-connector${(isCompleted || appState.completedStages.has(i+1) || appState.currentStage > i) ? ' done' : ''}"></div>` : ''}
     </div>`;
@@ -1586,6 +1949,655 @@ function showToast(msg) {
 }
 
 // ============================================================
+// ICOSAHEDRON EXPLORER
+// ============================================================
+(function() {
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const norm = Math.sqrt(1 + phi * phi);
+
+  // 12 vertices, unit sphere
+  const V = [
+    [0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],
+    [1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],
+    [phi,0,1],[-phi,0,1],[phi,0,-1],[-phi,0,-1]
+  ].map(v => [v[0]/norm, v[1]/norm, v[2]/norm]);
+
+  // 20 triangular faces (each vertex appears in exactly 5 faces)
+  const F = [
+    [0,1,8],[0,8,4],[0,4,5],[0,5,9],[0,9,1],
+    [1,6,8],[8,6,10],[8,10,4],[4,10,2],[4,2,5],
+    [5,2,11],[5,11,9],[9,11,7],[9,7,1],[1,7,6],
+    [3,10,6],[3,6,7],[3,7,11],[3,11,2],[3,2,10]
+  ];
+
+  // 30 unique edges
+  const edgeSet = new Set(), E = [];
+  F.forEach(([a,b,c]) => [[a,b],[b,c],[a,c]].forEach(([i,j]) => {
+    const k = Math.min(i,j)+'-'+Math.max(i,j);
+    if (!edgeSet.has(k)) { edgeSet.add(k); E.push([i,j]); }
+  }));
+
+  // Vector helpers
+  const norm3 = v => { const l=Math.hypot(v[0],v[1],v[2]); return [v[0]/l,v[1]/l,v[2]/l]; };
+  const cross3 = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const dot3   = (a,b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+
+  // Per-vertex neighbour list (each vertex has exactly 5 neighbours)
+  const NBR = V.map(()=>[]);
+  F.forEach(([a,b,c]) => [[a,b],[b,c],[a,c]].forEach(([i,j]) => {
+    if (!NBR[i].includes(j)) NBR[i].push(j);
+    if (!NBR[j].includes(i)) NBR[j].push(i);
+  }));
+
+  // Neighbours of vertex vi sorted CCW around the 5-fold axis (for pentagon drawing)
+  function sortedNbr(vi) {
+    const v = V[vi];
+    const ref = Math.abs(v[0]) < 0.9 ? [1,0,0] : [0,1,0];
+    const u = norm3(cross3(ref, v));
+    const w = cross3(v, u);
+    return NBR[vi].slice().sort((a,b) =>
+      Math.atan2(dot3(V[a],w), dot3(V[a],u)) - Math.atan2(dot3(V[b],w), dot3(V[b],u))
+    );
+  }
+
+  // Edge → the two adjacent faces (for rhombus outline on 2-fold axes)
+  const EF = {};
+  F.forEach(([a,b,c], fi) => {
+    [[a,b,c],[b,c,a],[a,c,b]].forEach(([i,j,k]) => {
+      const key = Math.min(i,j)+'-'+Math.max(i,j);
+      if (!EF[key]) EF[key] = [];
+      EF[key].push({ fi, other: k });
+    });
+  });
+
+  // Outward face normals in world space (= normalised centroid for regular icosahedron)
+  const FN = F.map(([a,b,c]) => norm3([
+    (V[a][0]+V[b][0]+V[c][0])/3,
+    (V[a][1]+V[b][1]+V[c][1])/3,
+    (V[a][2]+V[b][2]+V[c][2])/3
+  ]));
+
+  // Axis indicator points — stored as objects so outline drawing can access indices
+  const pts5 = V.map((v,i)   => ({ pos:[...v], vi:i }));                    // 12 vertices  → 5-fold
+  const pts3 = F.map(([a,b,c],i) => ({                                      // 20 face centres → 3-fold
+    pos: norm3([(V[a][0]+V[b][0]+V[c][0])/3,
+                (V[a][1]+V[b][1]+V[c][1])/3,
+                (V[a][2]+V[b][2]+V[c][2])/3]), fi: i }));
+  const pts2 = E.map(([a,b],i) => ({                                        // 30 edge midpoints → 2-fold
+    pos: norm3([(V[a][0]+V[b][0])/2,
+                (V[a][1]+V[b][1])/2,
+                (V[a][2]+V[b][2])/2]), ei: i }));
+
+  // ── 3×3 row-major matrix helpers ──
+  const mulM = (A,B) => [
+    A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
+    A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8],
+    A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8]
+  ];
+  const applyM = (M,v) => [
+    M[0]*v[0]+M[1]*v[1]+M[2]*v[2],
+    M[3]*v[0]+M[4]*v[1]+M[5]*v[2],
+    M[6]*v[0]+M[7]*v[1]+M[8]*v[2]
+  ];
+
+  // Rodrigues rotation matrix from mouse drag (dx, dy pixels)
+  function dragRot(dx, dy) {
+    const s=0.009, ax=dy*s, ay=dx*s, a=Math.hypot(ax,ay);
+    if (a < 1e-7) return [1,0,0,0,1,0,0,0,1];
+    const ux=ax/a, uy=ay/a, c=Math.cos(a), si=Math.sin(a), t=1-c;
+    return [c+ux*ux*t, ux*uy*t, uy*si,
+            ux*uy*t, c+uy*uy*t, -ux*si,
+            -uy*si, ux*si, c];
+  }
+
+  // Rotation that places world-point pt facing the camera (maps pt → (0,0,-1))
+  function alignToCamera(pt) {
+    const [px,py,pz]=pt, len=Math.hypot(px,py);
+    if (len < 1e-6) return pz < 0 ? [1,0,0,0,1,0,0,0,1] : [-1,0,0,0,1,0,0,0,-1];
+    const c=-pz, si=len, t=1-c, ux=-py/len, uy=px/len;
+    return [c+ux*ux*t, ux*uy*t, uy*si,
+            ux*uy*t, c+uy*uy*t, -ux*si,
+            -uy*si, ux*si, c];
+  }
+
+  // Perspective-project world point through rotation M onto canvas (returns [sx, sy, rz])
+  function proj(v, M, W, H) {
+    const r=applyM(M,v), fov=3.2, sc=Math.min(W,H)*0.41*fov/(r[2]+fov);
+    return [W/2+r[0]*sc, H/2-r[1]*sc, r[2]];
+  }
+
+  // Glowing dot — alpha=0 for hidden, 1 for fully visible
+  function drawDot(ctx, x, y, color, r, alpha) {
+    const grad=ctx.createRadialGradient(x,y,0,x,y,r*3.5);
+    grad.addColorStop(0,color); grad.addColorStop(1,color+'00');
+    ctx.globalAlpha=alpha*0.4;
+    ctx.beginPath(); ctx.arc(x,y,r*3.5,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+    ctx.globalAlpha=alpha;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // ── Core render ──
+  function drawIco(canvas, M, demoHL, quizHL) {
+    const ctx=canvas.getContext('2d'), W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+
+    // Rotate every vertex once
+    const rv = V.map(v => applyM(M,v));
+    // Perspective-project onto canvas pixels
+    const fov=3.2, s0=Math.min(W,H)*0.41*fov;
+    const pv = rv.map(r => [W/2+r[0]*s0/(r[2]+fov), H/2-r[1]*s0/(r[2]+fov)]);
+
+    // Depth-sort + shade faces (painter's algorithm, solid colours, no transparency)
+    const fdata = F.map(([a,b,c], fi) => {
+      const cz=(rv[a][2]+rv[b][2]+rv[c][2])/3;
+      const cn=applyM(M, FN[fi]);
+      const lightDot=Math.max(0, -cn[2]); // light from camera (-z)
+      return {a,b,c,fi,cz,lightDot};
+    }).sort((x,y) => x.cz-y.cz);
+
+    fdata.forEach(({a,b,c,lightDot}) => {
+      const sh=0.18+0.82*lightDot;
+      // Sage green: shadow=(50,80,50) → highlight=(165,210,130)
+      const fr=Math.round(50+sh*115), fg=Math.round(80+sh*130), fb=Math.round(50+sh*80);
+      ctx.beginPath();
+      ctx.moveTo(pv[a][0],pv[a][1]); ctx.lineTo(pv[b][0],pv[b][1]); ctx.lineTo(pv[c][0],pv[c][1]);
+      ctx.closePath();
+      ctx.fillStyle=`rgb(${fr},${fg},${fb})`; ctx.fill();
+      ctx.strokeStyle='rgba(20,50,20,0.45)'; ctx.lineWidth=0.7; ctx.stroke();
+    });
+
+    // ── Demo: draw axis outlines + dots ──
+    if (demoHL) {
+      const {pts, color, type}=demoHL;
+      ctx.lineJoin='round'; ctx.lineCap='round';
+
+      // Sort back→front so front shapes render on top
+      const sorted=[...pts].sort((a,b) => applyM(M,b.pos)[2]-applyM(M,a.pos)[2]);
+
+      sorted.forEach(pt => {
+        const rz=applyM(M,pt.pos)[2];
+        const front=rz<0;
+        const alpha=front?1:0.13;
+        ctx.globalAlpha=alpha;
+
+        if (type==='fold5') {
+          // Pentagon: connect the 5 neighbours in order around this vertex
+          const nbrs=sortedNbr(pt.vi);
+          ctx.beginPath();
+          nbrs.forEach((ni,i) => {
+            if(i===0) ctx.moveTo(pv[ni][0],pv[ni][1]);
+            else      ctx.lineTo(pv[ni][0],pv[ni][1]);
+          });
+          ctx.closePath();
+          ctx.fillStyle=color+'28'; ctx.fill();
+          ctx.strokeStyle=color; ctx.lineWidth=2.2; ctx.stroke();
+
+        } else if (type==='fold3') {
+          // Triangle: the triangular face itself
+          const [a,b,c]=F[pt.fi];
+          ctx.beginPath();
+          ctx.moveTo(pv[a][0],pv[a][1]); ctx.lineTo(pv[b][0],pv[b][1]); ctx.lineTo(pv[c][0],pv[c][1]);
+          ctx.closePath();
+          ctx.fillStyle=color+'28'; ctx.fill();
+          ctx.strokeStyle=color; ctx.lineWidth=2.2; ctx.stroke();
+
+        } else if (type==='fold2') {
+          // Rhombus: the two faces that share this edge (diamond shape)
+          const [a,b]=E[pt.ei];
+          const key=Math.min(a,b)+'-'+Math.max(a,b);
+          const faces=EF[key];
+          if (faces && faces.length===2) {
+            const c1=faces[0].other, c2=faces[1].other;
+            ctx.beginPath();
+            ctx.moveTo(pv[a][0],pv[a][1]); ctx.lineTo(pv[c1][0],pv[c1][1]);
+            ctx.lineTo(pv[b][0],pv[b][1]); ctx.lineTo(pv[c2][0],pv[c2][1]);
+            ctx.closePath();
+            ctx.fillStyle=color+'28'; ctx.fill();
+            ctx.strokeStyle=color; ctx.lineWidth=2.2; ctx.stroke();
+          }
+          // Bold shared edge
+          ctx.beginPath();
+          ctx.moveTo(pv[a][0],pv[a][1]); ctx.lineTo(pv[b][0],pv[b][1]);
+          ctx.strokeStyle=color; ctx.lineWidth=3.5; ctx.stroke();
+        }
+        ctx.globalAlpha=1;
+      });
+
+      // Dots on top of outlines
+      sorted.forEach(pt => {
+        const rz=applyM(M,pt.pos)[2];
+        const pp=proj(pt.pos,M,W,H);
+        drawDot(ctx, pp[0], pp[1], color, 5, rz<0?1:0.13);
+      });
+    }
+
+    // ── Quiz: single pulsing gold dot ──
+    if (quizHL) {
+      const pulse=0.75+0.25*Math.sin(Date.now()*0.005);
+      const pp=proj(quizHL,M,W,H);
+      drawDot(ctx, pp[0], pp[1], '#FFD700', 6*pulse, 1);
+    }
+  }
+
+  // ──────────────────────────────
+  // DEMO STATE
+  // ──────────────────────────────
+  let dM=[1,0,0,0,1,0,0,0,1], dActiveAxis=null, dAnimId=null, dDrag=false, dLast=null;
+
+  const AXIS_INFO = {
+    fold5: { pts:pts5, color:'#9B72CF', type:'fold5',
+      desc:'<strong>5-Fold axes</strong> pass through each of the 12 <strong>vertices</strong>. There are 6 axes (each connecting two antipodal vertices). Rotating 72° maps the icosahedron onto itself.' },
+    fold3: { pts:pts3, color:'#5C8C5C', type:'fold3',
+      desc:'<strong>3-Fold axes</strong> pass through the centre of each of the 20 <strong>triangular faces</strong>. There are 10 axes. Rotating 120° maps the icosahedron onto itself.' },
+    fold2: { pts:pts2, color:'#C97060', type:'fold2',
+      desc:'<strong>2-Fold axes</strong> pass through the midpoint of each of the 30 <strong>edges</strong>. There are 15 axes. Rotating 180° maps the icosahedron onto itself.' }
+  };
+
+  function dRender() {
+    const c=document.getElementById('ico-demo-canvas'); if(!c) return;
+    const info=dActiveAxis?AXIS_INFO[dActiveAxis]:null;
+    drawIco(c, dM, info?{pts:info.pts, color:info.color, type:info.type}:null, null);
+  }
+
+  function dSpin() {
+    dM=mulM(dragRot(0.6,0.2),dM); dRender();
+    dAnimId=requestAnimationFrame(dSpin);
+  }
+
+  window.icoShowAxis = function(type) {
+    dActiveAxis=type;
+    ['fold5','fold3','fold2'].forEach(t => {
+      const b=document.getElementById('ico-demo-btn-'+t);
+      if(b) b.classList.toggle('active',t===type);
+    });
+    const desc=document.getElementById('ico-demo-desc');
+    if(desc) desc.innerHTML=AXIS_INFO[type].desc;
+    dRender();
+  };
+
+  window.icoInitDemo = function() {
+    const c=document.getElementById('ico-demo-canvas'); if(!c) return;
+    c.addEventListener('mousedown', e=>{ dDrag=true; dLast=[e.clientX,e.clientY]; cancelAnimationFrame(dAnimId); e.preventDefault(); });
+    c.addEventListener('mousemove', e=>{
+      if(!dDrag) return;
+      dM=mulM(dragRot(e.clientX-dLast[0],e.clientY-dLast[1]),dM);
+      dLast=[e.clientX,e.clientY]; dRender();
+    });
+    c.addEventListener('mouseup', ()=>{ dDrag=false; dSpin(); });
+    c.addEventListener('mouseleave', ()=>{ dDrag=false; });
+    c.addEventListener('touchstart', e=>{ dDrag=true; dLast=[e.touches[0].clientX,e.touches[0].clientY]; cancelAnimationFrame(dAnimId); e.preventDefault(); },{passive:false});
+    c.addEventListener('touchmove', e=>{
+      if(!dDrag) return;
+      dM=mulM(dragRot(e.touches[0].clientX-dLast[0],e.touches[0].clientY-dLast[1]),dM);
+      dLast=[e.touches[0].clientX,e.touches[0].clientY]; dRender(); e.preventDefault();
+    },{passive:false});
+    c.addEventListener('touchend', ()=>{ dDrag=false; dSpin(); });
+    dSpin();
+    icoShowAxis('fold5');
+  };
+
+  // ──────────────────────────────
+  // QUIZ STATE
+  // ──────────────────────────────
+  let qM=[1,0,0,0,1,0,0,0,1], qAnimId=null, qDrag=false, qLast=null;
+  let qHlPt=null, qHlType=null, qScore=0, qRound=0, qAnswered=false;
+  const Q_TOTAL=6;
+  const PTS_MAP={fold5:pts5, fold3:pts3, fold2:pts2};
+  const LABELS={fold5:'5-fold axis (vertex)', fold3:'3-fold axis (face centre)', fold2:'2-fold axis (edge midpoint)'};
+  const EXPLAIN={
+    fold5:'5 triangular faces meet at a <strong>vertex</strong> — that meeting point has 5-fold rotational symmetry.',
+    fold3:'The centre of each triangular <strong>face</strong> is a 3-fold rotation axis — rotate 120° and the face maps onto itself.',
+    fold2:'The midpoint of each <strong>edge</strong> is a 2-fold rotation axis — rotate 180° and the two flanking faces swap.'
+  };
+
+  function newRound() {
+    qAnswered=false;
+    const types=['fold5','fold3','fold2'];
+    qHlType=types[Math.floor(Math.random()*3)];
+    const pool=PTS_MAP[qHlType];
+    qHlPt=pool[Math.floor(Math.random()*pool.length)].pos; // raw [x,y,z]
+    qM=alignToCamera(qHlPt);
+    const prompt=document.getElementById('ico-quiz-prompt');
+    if(prompt) prompt.textContent=`Round ${qRound+1} of ${Q_TOTAL}: What type of symmetry axis is the gold dot on?`;
+    const fb=document.getElementById('ico-quiz-feedback');
+    if(fb) fb.innerHTML='';
+    ['fold5','fold3','fold2'].forEach(t=>{
+      const b=document.getElementById('ico-ans-btn-'+t);
+      if(b){b.disabled=false;b.classList.remove('correct','wrong');}
+    });
+  }
+
+  function qRender() {
+    const c=document.getElementById('ico-quiz-canvas'); if(!c) return;
+    drawIco(c,qM,null,qHlPt);
+    if(!qAnswered) qAnimId=requestAnimationFrame(qRender);
+  }
+
+  window.icoAnswer = function(type) {
+    if(qAnswered) return;
+    qAnswered=true; cancelAnimationFrame(qAnimId);
+    const correct=type===qHlType;
+    if(correct) qScore++;
+    qRound++;
+    ['fold5','fold3','fold2'].forEach(t=>{
+      const b=document.getElementById('ico-ans-btn-'+t); if(!b) return;
+      b.disabled=true;
+      if(t===qHlType) b.classList.add('correct');
+      else if(t===type) b.classList.add('wrong');
+    });
+    const fb=document.getElementById('ico-quiz-feedback');
+    if(fb) fb.innerHTML=correct
+      ?`<div class="ico-feedback correct">✓ Correct! ${EXPLAIN[qHlType]}</div>`
+      :`<div class="ico-feedback wrong">✗ That was the <strong>${LABELS[qHlType]}</strong>. ${EXPLAIN[qHlType]}</div>`;
+    const sc=document.getElementById('ico-quiz-score');
+    if(sc){
+      if(qRound>=Q_TOTAL){
+        const pct=Math.round(qScore/Q_TOTAL*100);
+        sc.innerHTML=`<div class="ico-final-score">Final score: ${qScore}/${Q_TOTAL} &nbsp;${pct>=80?'🎉 Excellent!':pct>=60?'👍 Good job!':'📚 Keep practising!'}</div>
+          <button class="btn btn-secondary" onclick="icoRestartQuiz()" style="font-size:0.78rem;padding:5px 14px;">Try Again</button>`;
+      } else {
+        sc.innerHTML=`<div class="ico-score-bar">Score so far: ${qScore}/${qRound} &nbsp;
+          <button class="btn btn-primary" onclick="icoNextRound()" style="font-size:0.78rem;padding:5px 14px;">Next →</button></div>`;
+      }
+    }
+    const cv=document.getElementById('ico-quiz-canvas'); if(cv) drawIco(cv,qM,null,qHlPt);
+  };
+
+  window.icoNextRound    = function(){ newRound(); qRender(); };
+  window.icoRestartQuiz  = function(){
+    qScore=0; qRound=0;
+    const sc=document.getElementById('ico-quiz-score'); if(sc) sc.innerHTML='';
+    newRound(); qRender();
+  };
+
+  window.icoStartQuiz = function() {
+    document.getElementById('ico-phase-demo').style.display='none';
+    document.getElementById('ico-phase-quiz').style.display='block';
+    cancelAnimationFrame(dAnimId);
+    const c=document.getElementById('ico-quiz-canvas'); if(!c) return;
+    c.addEventListener('mousedown', e=>{ qDrag=true; qLast=[e.clientX,e.clientY]; e.preventDefault(); });
+    c.addEventListener('mousemove', e=>{
+      if(!qDrag) return;
+      qM=mulM(dragRot(e.clientX-qLast[0],e.clientY-qLast[1]),qM);
+      qLast=[e.clientX,e.clientY];
+    });
+    c.addEventListener('mouseup', ()=>{ qDrag=false; });
+    c.addEventListener('mouseleave', ()=>{ qDrag=false; });
+    c.addEventListener('touchstart', e=>{ qDrag=true; qLast=[e.touches[0].clientX,e.touches[0].clientY]; e.preventDefault(); },{passive:false});
+    c.addEventListener('touchmove', e=>{
+      if(!qDrag) return;
+      qM=mulM(dragRot(e.touches[0].clientX-qLast[0],e.touches[0].clientY-qLast[1]),qM);
+      qLast=[e.touches[0].clientX,e.touches[0].clientY]; e.preventDefault();
+    },{passive:false});
+    c.addEventListener('touchend', ()=>{ qDrag=false; });
+    qScore=0; qRound=0;
+    newRound(); qRender();
+  };
+
+  window.icoBackToDemo = function() {
+    document.getElementById('ico-phase-quiz').style.display='none';
+    document.getElementById('ico-phase-demo').style.display='block';
+    cancelAnimationFrame(qAnimId);
+    dSpin();
+  };
+
+  // ── Dance stage renderer (called each animation frame from main scope) ──
+  window.drawDanceFrame = function(canvas, M, bands) {
+    const {bass, mid, treble} = bands;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const energy = Math.min(1, (bass*0.5 + mid*0.3 + treble*0.2));
+    const breathe = 1 + energy * 0.10;
+
+    // Rotate + project vertices (with breathing scale)
+    const rv = V.map(v => applyM(M, v));
+    const fov = 2.8, s0 = Math.min(W, H) * 0.38 * fov * breathe;
+    const pv = rv.map(r => [W/2 + r[0]*s0/(r[2]+fov), H/2 - r[1]*s0/(r[2]+fov)]);
+
+    // Project any 3-D world point (for expanded outline corners)
+    function pr(pt) {
+      const r = applyM(M, pt), sc = s0/(r[2]+fov);
+      return [W/2 + r[0]*sc, H/2 - r[1]*sc, r[2]];
+    }
+
+    // Depth-sort faces + lighting
+    const fdata = F.map(([a,b,c], fi) => {
+      const cz = (rv[a][2]+rv[b][2]+rv[c][2])/3;
+      const cn = applyM(M, FN[fi]);
+      return {a, b, c, cz, light: Math.max(0, -cn[2])};
+    }).sort((x,y) => x.cz - y.cz);
+
+    // Draw solid faces — deep teal/navy, brightened by energy
+    fdata.forEach(({a, b, c, light}) => {
+      const sh = 0.14 + 0.86 * light;
+      const boost = 1 + energy * 0.45;
+      const fr = Math.min(255, Math.round((18 + sh*55)*boost));
+      const fg = Math.min(255, Math.round((55 + sh*95)*boost));
+      const fb = Math.min(255, Math.round((80 + sh*110)*boost));
+      ctx.beginPath();
+      ctx.moveTo(pv[a][0],pv[a][1]); ctx.lineTo(pv[b][0],pv[b][1]); ctx.lineTo(pv[c][0],pv[c][1]);
+      ctx.closePath();
+      ctx.fillStyle = `rgb(${fr},${fg},${fb})`; ctx.fill();
+      ctx.strokeStyle = 'rgba(0,20,40,0.55)'; ctx.lineWidth = 0.5; ctx.stroke();
+    });
+
+    // Helper: draw an expanded closed polygon outline + soft fill
+    function drawExpanded(corners3d, centerRz, color, amp, baseLineW) {
+      if (amp < 0.015) return;
+      const front = centerRz < 0;
+      const alpha = (front ? 1 : 0.1) * Math.min(1, amp * 1.8);
+      const proj2d = corners3d.map(pt => pr(pt));
+
+      // Outer glow pass
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.4 * amp;
+      ctx.beginPath();
+      proj2d.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.closePath();
+      ctx.strokeStyle = color; ctx.lineWidth = baseLineW + amp*6; ctx.lineJoin='round';
+      ctx.shadowColor = color; ctx.shadowBlur = 12 * amp;
+      ctx.stroke();
+
+      // Fill
+      ctx.globalAlpha = alpha * 0.18 * amp;
+      ctx.fillStyle = color; ctx.fill();
+
+      // Crisp stroke
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      proj2d.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.closePath();
+      ctx.strokeStyle = color; ctx.lineWidth = baseLineW + amp*1.5;
+      ctx.shadowBlur = 0; ctx.stroke();
+      ctx.restore();
+    }
+
+    // 2-fold rhombuses (bass) — expand corners away from edge midpoint
+    pts2.forEach(pt => {
+      if (bass < 0.015) return;
+      const sc = 1 + bass * 0.55;
+      const c = pt.pos, cr = applyM(M, c);
+      const [a, b] = E[pt.ei];
+      const key = Math.min(a,b)+'-'+Math.max(a,b);
+      const faces = EF[key]; if (!faces || faces.length < 2) return;
+      const c1 = faces[0].other, c2 = faces[1].other;
+      const exp = [V[a],V[c1],V[b],V[c2]].map(v =>
+        [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc]
+      );
+      drawExpanded(exp, cr[2], '#E8624A', bass, 1.5);
+    });
+
+    // 3-fold triangles (mid) — expand corners away from face centre
+    pts3.forEach(pt => {
+      if (mid < 0.015) return;
+      const sc = 1 + mid * 0.55;
+      const c = pt.pos, cr = applyM(M, c);
+      const [a, b, cv] = F[pt.fi];
+      const exp = [V[a],V[b],V[cv]].map(v =>
+        [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc]
+      );
+      drawExpanded(exp, cr[2], '#3DAA6A', mid, 1.5);
+    });
+
+    // 5-fold pentagons (treble) — expand corners away from vertex
+    pts5.forEach(pt => {
+      if (treble < 0.015) return;
+      const sc = 1 + treble * 0.55;
+      const c = pt.pos, cr = applyM(M, c);
+      const exp = sortedNbr(pt.vi).map(ni => {
+        const v = V[ni];
+        return [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc];
+      });
+      drawExpanded(exp, cr[2], '#9B72CF', treble, 1.5);
+    });
+
+    // Axis-centre dots pulsing with their band
+    [[pts2,'#E8624A',bass],[pts3,'#3DAA6A',mid],[pts5,'#9B72CF',treble]].forEach(([pts,col,amp])=>{
+      pts.forEach(pt=>{
+        const rz=applyM(M,pt.pos)[2], alpha=(rz<0?1:0.1)*Math.min(1,amp*2);
+        if(alpha<0.01) return;
+        const pp=pr(pt.pos);
+        drawDot(ctx, pp[0], pp[1], col, 3+amp*3, alpha);
+      });
+    });
+  };
+})();
+
+// ============================================================
+// CAPSID DANCE
+// ============================================================
+let danceM       = [1,0,0,0,1,0,0,0,1];
+let danceAnimId  = null;
+let danceAudioCtx = null, danceAnalyser = null, danceAudioSource = null;
+let danceSmooth  = { bass: 0, mid: 0, treble: 0 };
+let danceIsPlaying = false;
+
+function initDanceStage() {
+  // Show virus name
+  const vn = document.getElementById('dance-virus-name');
+  if (vn && appState.selectedVirus) vn.textContent = appState.selectedVirus.name;
+
+  // Show track name
+  const tn = document.getElementById('dance-track-name');
+  const noA = document.getElementById('dance-no-audio');
+  const pb  = document.getElementById('dance-play-btn');
+  if (appState.trackName && appState.trackName !== 'No track') {
+    if (tn) tn.textContent = '♪ ' + appState.trackName;
+    if (noA) noA.style.display = 'none';
+    if (pb)  pb.style.display  = 'block';
+  } else {
+    if (tn)  tn.textContent  = '';
+    if (noA) noA.style.display = 'block';
+    if (pb)  pb.style.display  = 'none';
+  }
+
+  // Reset play button state
+  danceIsPlaying = false;
+  const audioEl = document.getElementById('audio-el');
+  if (audioEl && !audioEl.paused) { audioEl.pause(); }
+  if (pb) { pb.textContent = '▶ Play'; pb.classList.remove('playing'); }
+
+  // Start animation loop (even without audio, the icosahedron spins)
+  cancelAnimationFrame(danceAnimId);
+  danceLoop();
+}
+
+function danceGetBands() {
+  if (!danceAnalyser) return { bass: 0, mid: 0, treble: 0 };
+  const bins = danceAnalyser.frequencyBinCount;
+  const data = new Uint8Array(bins);
+  danceAnalyser.getByteFrequencyData(data);
+  const avg = (s, e) => {
+    let sum = 0;
+    for (let i = s; i < e; i++) sum += data[i];
+    return sum / Math.max(1, e - s) / 255;
+  };
+  const bassEnd   = Math.max(1, Math.floor(bins * 0.05));  // 0–~220 Hz
+  const midEnd    = Math.max(bassEnd+1, Math.floor(bins * 0.30)); // up to ~2.6 kHz
+  const trebleEnd = Math.max(midEnd+1, Math.floor(bins * 0.70)); // up to ~6 kHz
+  return { bass: avg(0, bassEnd), mid: avg(bassEnd, midEnd), treble: avg(midEnd, trebleEnd) };
+}
+
+function danceLoop() {
+  // Slow auto-rotation
+  const s = 0.004;
+  const cos = Math.cos(s), sin = Math.sin(s);
+  const Ry = [cos,0,sin, 0,1,0, -sin,0,cos];
+  const mulM3 = (A,B) => [
+    A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
+    A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8],
+    A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8]
+  ];
+  danceM = mulM3(Ry, danceM);
+
+  // Audio bands with peak-hold smoothing
+  const raw = danceGetBands();
+  const alpha = 0.25;
+  danceSmooth.bass   = Math.max(raw.bass,   danceSmooth.bass   * 0.82) * (1-alpha) + raw.bass   * alpha;
+  danceSmooth.mid    = Math.max(raw.mid,    danceSmooth.mid    * 0.82) * (1-alpha) + raw.mid    * alpha;
+  danceSmooth.treble = Math.max(raw.treble, danceSmooth.treble * 0.82) * (1-alpha) + raw.treble * alpha;
+
+  // Draw animated icosahedron
+  const canvas = document.getElementById('dance-canvas');
+  if (canvas && typeof window.drawDanceFrame === 'function') {
+    window.drawDanceFrame(canvas, danceM, danceSmooth);
+  }
+
+  // Update equaliser bars
+  const toW = v => Math.round(Math.min(100, v * 100 * 2.5)) + '%';
+  const mb = document.getElementById('meter-bass');   if (mb) mb.style.width = toW(danceSmooth.bass);
+  const mm = document.getElementById('meter-mid');    if (mm) mm.style.width = toW(danceSmooth.mid);
+  const mt = document.getElementById('meter-treble'); if (mt) mt.style.width = toW(danceSmooth.treble);
+
+  // Pulse the Mol* viewer brightness with overall energy
+  const energy = (danceSmooth.bass + danceSmooth.mid + danceSmooth.treble) / 3;
+  const vw = document.getElementById('dance-viewer-wrap');
+  if (vw) vw.style.filter = `brightness(${0.75 + energy * 0.7}) saturate(${1 + energy * 0.6})`;
+
+  danceAnimId = requestAnimationFrame(danceLoop);
+}
+
+function stopDanceStage() {
+  cancelAnimationFrame(danceAnimId);
+  danceAnimId = null;
+  const audioEl = document.getElementById('audio-el');
+  if (audioEl && danceIsPlaying) { audioEl.pause(); danceIsPlaying = false; }
+  const vw = document.getElementById('dance-viewer-wrap');
+  if (vw) vw.style.filter = '';
+}
+
+function toggleDancePlay() {
+  const audioEl = document.getElementById('audio-el');
+  if (!audioEl || !appState.audioFile) return;
+
+  // Create Web Audio chain once
+  if (!danceAudioCtx) {
+    danceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    danceAnalyser = danceAudioCtx.createAnalyser();
+    danceAnalyser.fftSize = 512;
+    danceAnalyser.smoothingTimeConstant = 0.5;
+    danceAudioSource = danceAudioCtx.createMediaElementSource(audioEl);
+    danceAudioSource.connect(danceAnalyser);
+    danceAnalyser.connect(danceAudioCtx.destination);
+  }
+  if (danceAudioCtx.state === 'suspended') danceAudioCtx.resume();
+
+  const btn = document.getElementById('dance-play-btn');
+  if (danceIsPlaying) {
+    audioEl.pause();
+    danceIsPlaying = false;
+    if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('playing'); }
+  } else {
+    audioEl.play().catch(()=>{});
+    danceIsPlaying = true;
+    if (btn) { btn.textContent = '⏸ Pause'; btn.classList.add('playing'); }
+  }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1615,15 +2627,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderProgress();
   renderHostTabs();
   renderVirusGrid();
-  document.getElementById('stage-1').classList.add('active');
+  document.getElementById('stage-0').classList.add('active');
+
+  // 5a. Init icosahedron explorer on the overview page
+  icoInitDemo();
 
   // 5. Init main Mol* viewer
   try {
     mainViewer = await initMolstar('molstar-main');
     molstarReady = true;
     subscribeAxisCanvas(); // hook canvas draw to camera updates
-    // Move viewer to stage 1 slot
-    moveViewerToSlot('stage-1-viewer-slot');
+    // viewer stays hidden until user navigates to stage 1
     showToast('Mol* viewer ready');
   } catch(e) {
     console.error('Molstar init failed:', e);

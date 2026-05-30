@@ -1008,6 +1008,42 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
         </div>
 
         <hr class="divider">
+        <div class="section-title mb-8">Visualization Style</div>
+        <p class="text-sm text-light" style="margin-bottom:10px;">Adjust how the 3D capsid looks on the card, then press Apply.</p>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label">Representation</label>
+          <select class="ctrl-input" id="card-style-preset">
+            <option value="default">Default (cartoon + ligands)</option>
+            <option value="illustrative">Illustrative</option>
+            <option value="molecular-surface">Molecular Surface</option>
+            <option value="polymer-cartoon">Polymer Cartoon</option>
+            <option value="polymer-and-ligand">Polymer &amp; Ligand</option>
+            <option value="coarse-surface">Coarse Surface</option>
+            <option value="ball-and-stick">Ball &amp; Stick</option>
+            <option value="putty">Putty / Tube</option>
+          </select>
+        </div>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label">Color By</label>
+          <select class="ctrl-input" id="card-color-by">
+            <option value="default">Default (preset colors)</option>
+            <option value="chain-id">Chain</option>
+            <option value="polymer-id">Polymer</option>
+            <option value="secondary-structure">Secondary Structure</option>
+            <option value="element-symbol">Element (CPK)</option>
+            <option value="sequence-id">Rainbow (sequence)</option>
+            <option value="molecule-type">Molecule Type</option>
+            <option value="residue-name">Residue Name</option>
+            <option value="occupancy">Occupancy</option>
+            <option value="uncertainty">B-factor / Uncertainty</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" onclick="applyCardVisualization()" style="width:100%;margin-bottom:14px;font-size:0.84rem;padding:9px 0;">Apply Style →</button>
+
+        <hr class="divider">
         <div class="section-title mb-8">Mapping Summary</div>
         <div id="card-mapping-preview"></div>
       </div>
@@ -1887,6 +1923,40 @@ function syncCardField(field, cardInputId, value) {
   const cardEl = document.getElementById(cardInputId);
   if (cardEl && cardEl.value !== value) cardEl.value = value;
   saveSession();
+}
+
+// Apply Mol* representation preset + color theme to the card viewer
+async function applyCardVisualization() {
+  if (!cardViewer) { showToast('3D view not ready yet — wait a moment'); return; }
+  const plugin = cardViewer.plugin;
+  const preset  = document.getElementById('card-style-preset')?.value  || 'default';
+  const colorBy = document.getElementById('card-color-by')?.value || 'default';
+
+  const structures = plugin.managers.structure.hierarchy.current.structures;
+  if (!structures.length) { showToast('Structure not loaded yet'); return; }
+
+  try {
+    // 1. Apply representation preset (controls geometry: cartoon, surface, etc.)
+    await plugin.managers.structure.component.applyPreset(structures, preset);
+
+    // 2. Override color theme if the student chose something other than the preset default
+    if (colorBy !== 'default') {
+      // Brief settle so the preset's own state operations complete first
+      await new Promise(r => setTimeout(r, 120));
+      const current = plugin.managers.structure.hierarchy.current.structures;
+      const components = current.flatMap(s => s.components ?? []);
+      if (components.length) {
+        await plugin.managers.structure.component.updateRepresentationsTheme(
+          components, { color: { name: colorBy, params: {} } }
+        );
+      }
+    }
+
+    showToast('Style applied!');
+  } catch(e) {
+    console.warn('applyCardVisualization:', e);
+    showToast('Could not apply style — check the browser console for details');
+  }
 }
 
 async function captureCard() {

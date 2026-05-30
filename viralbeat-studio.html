@@ -893,7 +893,7 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
         <div class="section-title mb-8">Frequency Spectrum</div>
         <canvas id="spectrum-canvas" width="380" height="90" style="width:100%;border-radius:8px;background:var(--cream-dark);display:block;"></canvas>
         <div style="display:flex;justify-content:space-between;font-size:0.71rem;color:var(--text-light);margin-top:4px;padding:0 2px;">
-          <span style="color:#E8624A;">Bass</span><span style="color:#3DAA6A;">Mid</span><span style="color:#E8C44A;">Vocals</span><span style="color:#9B72CF;">Treble</span>
+          <span style="color:#E8624A;">Bass</span><span style="color:#3DAA6A;">Mid</span><span style="color:#9B72CF;">Treble</span>
         </div>
       </div>
     </div>
@@ -1570,10 +1570,9 @@ function convertYouTubeUrl() {
 // STAGE 3 — THE DANCING CAPSID (assignment UI + preprocessing)
 // ============================================================
 const BAND_DEFS = [
-  { key:'bass',        icon:'🔈', name:'Bass',           freq:'0–200 Hz',      default:'open2fold', color:'#E8624A' },
-  { key:'mid',         icon:'🎵', name:'Mid / Melody',   freq:'200–2k Hz',     default:'open3fold', color:'#3DAA6A' },
-  { key:'treble',      icon:'✨', name:'Treble',         freq:'2–8k Hz',       default:'open5fold', color:'#9B72CF' },
-  { key:'presence',    icon:'🎤', name:'Vocals / Pres.', freq:'1–5k Hz',       default:'wiggle',    color:'#E8C44A' },
+  { key:'bass',        icon:'🔈', name:'Bass',           freq:'0–430 Hz',      default:'open2fold', color:'#E8624A' },
+  { key:'mid',         icon:'🎵', name:'Mid / Melody',   freq:'300–3.3k Hz',   default:'open3fold', color:'#3DAA6A' },
+  { key:'treble',      icon:'✨', name:'Treble',         freq:'2.5–11k Hz',    default:'open5fold', color:'#9B72CF' },
   { key:'beat',        icon:'🥁', name:'Beat / Kick',    freq:'onset detect',  default:'pulse',     color:'#4AB5E8' },
   { key:'piano',       icon:'🎹', name:'Piano (soft)',   freq:'vol < 15 %',    default:'open3fold', color:'#7BAFD4' },
   { key:'mezzoforte',  icon:'🎼', name:'Mezzoforte',     freq:'vol < 25 %',    default:'wiggle',    color:'#D4A827' },
@@ -1797,38 +1796,38 @@ function s3SeekAudio(val) {
 // peak  decay ≈ 0.9992/frame → half-life ~14 s  (long-term range reference)
 // mean  decay ≈ 0.985 /frame → half-life  ~1 s  (recent baseline reference)
 const PEAK_D = 0.9992, MEAN_D = 0.985;
-const s3Peak = { bass:0.01, mid:0.01, treble:0.01, presence:0.01 };
-const s3Mean = { bass:0.01, mid:0.01, treble:0.01, presence:0.01 };
+const s3Peak = { bass:0.01, mid:0.01, treble:0.01 };
+const s3Mean = { bass:0.01, mid:0.01, treble:0.01 };
 
-function bandScore(raw, peak, mean) {
-  return Math.min(1, 0.35 * (raw / peak) + 0.65 * Math.max(0, raw - mean) / peak);
+// 65% onset-above-mean + 35% absolute level. Mid gets ×1.4, treble ×1.6 bonus
+// so melody/high frequencies overtake a sustained bass when they're active.
+function bandScore(raw, peak, mean, boost) {
+  return Math.min(1, (0.35*(raw/peak) + 0.65*Math.max(0,raw-mean)/peak) * (boost||1));
 }
 
 function s3GetBands() {
-  if (!s3Analyser) return { bass:0, mid:0, treble:0, presence:0, beat:0, piano:0, mezzoforte:0, forte:0 };
+  if (!s3Analyser) return { bass:0, mid:0, treble:0, beat:0, piano:0, mezzoforte:0, forte:0 };
   const data = new Uint8Array(s3Analyser.frequencyBinCount);
   s3Analyser.getByteFrequencyData(data);
   const bins = s3Analyser.frequencyBinCount;
   const avg = (s,e)=>{ let sum=0; for(let i=s;i<e;i++) sum+=data[i]; return sum/Math.max(1,e-s)/255; };
   const b = appState.audioBoosts || {bass:1,mid:1,treble:1};
 
-  const rBass     = avg(0,                     Math.floor(bins*0.03)) * b.bass;
-  const rMid      = avg(Math.floor(bins*0.03), Math.floor(bins*0.25)) * b.mid;
-  const rTreble   = avg(Math.floor(bins*0.25), Math.floor(bins*0.65)) * b.treble;
-  const rPresence = avg(Math.floor(bins*0.06), Math.floor(bins*0.40)) * b.mid;
+  // Lowered ranges: bass 0–430 Hz, mid 300–3.3 kHz, treble 2.5–11 kHz
+  const rBass   = avg(0,                     Math.floor(bins*0.020)) * b.bass;
+  const rMid    = avg(Math.floor(bins*0.015),Math.floor(bins*0.150)) * b.mid;
+  const rTreble = avg(Math.floor(bins*0.120),Math.floor(bins*0.500)) * b.treble;
 
-  // Update peaks (slow) and means (fast)
-  for (const [k, r] of [['bass',rBass],['mid',rMid],['treble',rTreble],['presence',rPresence]]) {
-    s3Peak[k] = Math.max(r, s3Peak[k] * PEAK_D, 0.01);
-    s3Mean[k] = s3Mean[k] * MEAN_D + r * (1 - MEAN_D);
+  for (const [k,r] of [['bass',rBass],['mid',rMid],['treble',rTreble]]) {
+    s3Peak[k] = Math.max(r, s3Peak[k]*PEAK_D, 0.01);
+    s3Mean[k] = s3Mean[k]*MEAN_D + r*(1-MEAN_D);
   }
 
   const oa = avg(0, bins);
   return {
-    bass:       bandScore(rBass,     s3Peak.bass,     s3Mean.bass),
-    mid:        bandScore(rMid,      s3Peak.mid,      s3Mean.mid),
-    treble:     bandScore(rTreble,   s3Peak.treble,   s3Mean.treble),
-    presence:   bandScore(rPresence, s3Peak.presence, s3Mean.presence),
+    bass:       bandScore(rBass,   s3Peak.bass,   s3Mean.bass,   1.00),
+    mid:        bandScore(rMid,    s3Peak.mid,    s3Mean.mid,    1.40),
+    treble:     bandScore(rTreble, s3Peak.treble, s3Mean.treble, 1.60),
     beat:       0,
     piano:      oa > 0.02 ? Math.min(1, Math.max(0, (0.15 - oa) / 0.15)) : 0,
     mezzoforte: oa > 0.02 ? Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)) : 0,
@@ -2877,7 +2876,7 @@ function showToast(msg) {
   // singleAxis=true → only the dominant fold axis opens (winner-takes-all).
   // Used by the Stage 3 live preview so students clearly see one axis at a time.
   window.drawDodecFrame = function(canvas, M, bands, movements, singleAxis) {
-    const {bass=0, mid=0, treble=0, presence=0, beat=0, piano=0, mezzoforte=0, forte=0} = bands;
+    const {bass=0, mid=0, treble=0, beat=0, piano=0, mezzoforte=0, forte=0} = bands;
     let s2=0, s3f=0, s5=0, wigAmp=0, scaleAll=1;
     if (movements) {
       const applyBand = (val, cfg) => {
@@ -2892,7 +2891,7 @@ function showToast(msg) {
         }
       };
       applyBand(bass,movements.bass); applyBand(mid,movements.mid);
-      applyBand(treble,movements.treble); applyBand(presence,movements.presence);
+      applyBand(treble,movements.treble);
       applyBand(beat||0,movements.beat);
       applyBand(piano||0,movements.piano);
       applyBand(mezzoforte||0,movements.mezzoforte);
@@ -3052,7 +3051,7 @@ function showToast(msg) {
   // visible only when they are actively opening; used for the full-size overlay.
   window.drawDanceFrame = function(canvas, M, bands, movements, overlayMode) {
     overlayMode = !!overlayMode;
-    const {bass=0, mid=0, treble=0, presence=0, beat=0, piano=0, mezzoforte=0, forte=0} = bands;
+    const {bass=0, mid=0, treble=0, beat=0, piano=0, mezzoforte=0, forte=0} = bands;
 
     // Band → fold-axis amplitude
     let s2=0, s3f=0, s5=0, wigAmp=0, scaleAll=1;
@@ -3069,7 +3068,7 @@ function showToast(msg) {
         }
       };
       applyBand(bass,movements.bass); applyBand(mid,movements.mid);
-      applyBand(treble,movements.treble); applyBand(presence,movements.presence);
+      applyBand(treble,movements.treble);
       applyBand(beat||0,movements.beat);
       applyBand(piano||0,movements.piano);
       applyBand(mezzoforte||0,movements.mezzoforte);
@@ -3251,7 +3250,7 @@ function showToast(msg) {
 let danceM       = [1,0,0,0,1,0,0,0,1];
 let danceAnimId  = null;
 let danceAudioCtx = null, danceAnalyser = null, danceAudioSource = null;
-let danceSmooth  = { bass: 0, mid: 0, treble: 0, presence: 0, beat: 0, piano: 0, mezzoforte: 0, forte: 0 };
+let danceSmooth  = { bass: 0, mid: 0, treble: 0, beat: 0, piano: 0, mezzoforte: 0, forte: 0 };
 let prevDanceBass = 0;
 let danceIsPlaying = false;
 
@@ -3322,11 +3321,11 @@ function initDanceStage() {
   danceLoop();
 }
 
-const dancePeak = { bass:0.01, mid:0.01, treble:0.01, presence:0.01 };
-const danceMean = { bass:0.01, mid:0.01, treble:0.01, presence:0.01 };
+const dancePeak = { bass:0.01, mid:0.01, treble:0.01 };
+const danceMean = { bass:0.01, mid:0.01, treble:0.01 };
 
 function danceGetBands() {
-  if (!danceAnalyser) return { bass: 0, mid: 0, treble: 0, presence: 0, beat: 0, piano: 0, mezzoforte: 0, forte: 0 };
+  if (!danceAnalyser) return { bass: 0, mid: 0, treble: 0, beat: 0, piano: 0, mezzoforte: 0, forte: 0 };
   const bins = danceAnalyser.frequencyBinCount;
   const data = new Uint8Array(bins);
   danceAnalyser.getByteFrequencyData(data);
@@ -3335,34 +3334,26 @@ function danceGetBands() {
     for (let i = s; i < e; i++) sum += data[i];
     return sum / Math.max(1, e - s) / 255;
   };
-  const bassEnd     = Math.max(1,        Math.floor(bins * 0.05));
-  const midEnd      = Math.max(bassEnd+1, Math.floor(bins * 0.30));
-  const trebleEnd   = Math.max(midEnd+1,  Math.floor(bins * 0.70));
-  const presenceEnd = Math.max(Math.floor(bins*0.06)+1, Math.floor(bins * 0.42));
   const b = appState.audioBoosts;
 
-  const rawBass     = avg(0, bassEnd)                         * b.bass;
-  const rawMid      = avg(bassEnd, midEnd)                    * b.mid;
-  const rawTreble   = avg(midEnd, trebleEnd)                  * b.treble;
-  const rawPresence = avg(Math.floor(bins*0.06), presenceEnd) * b.mid;
+  const rawBass   = avg(0,                      Math.floor(bins*0.020)) * b.bass;
+  const rawMid    = avg(Math.floor(bins*0.015),  Math.floor(bins*0.150)) * b.mid;
+  const rawTreble = avg(Math.floor(bins*0.120),  Math.floor(bins*0.500)) * b.treble;
 
-  // Beat detection: raw un-scored bass so transients stay sharp
-  const rawBassUnboosted = avg(0, bassEnd);
-  const beat = Math.max(0, rawBassUnboosted - prevDanceBass * 0.65) * 2.5;
-  prevDanceBass = rawBassUnboosted;
+  const rawBassRaw = avg(0, Math.floor(bins*0.020));
+  const beat = Math.max(0, rawBassRaw - prevDanceBass * 0.65) * 2.5;
+  prevDanceBass = rawBassRaw;
 
-  // Update peaks and means
-  for (const [k, r] of [['bass',rawBass],['mid',rawMid],['treble',rawTreble],['presence',rawPresence]]) {
-    dancePeak[k] = Math.max(r, dancePeak[k] * PEAK_D, 0.01);
-    danceMean[k] = danceMean[k] * MEAN_D + r * (1 - MEAN_D);
+  for (const [k, r] of [['bass',rawBass],['mid',rawMid],['treble',rawTreble]]) {
+    dancePeak[k] = Math.max(r, dancePeak[k]*PEAK_D, 0.01);
+    danceMean[k] = danceMean[k]*MEAN_D + r*(1-MEAN_D);
   }
 
   const oa = avg(0, bins);
   return {
-    bass:       bandScore(rawBass,     dancePeak.bass,     danceMean.bass),
-    mid:        bandScore(rawMid,      dancePeak.mid,      danceMean.mid),
-    treble:     bandScore(rawTreble,   dancePeak.treble,   danceMean.treble),
-    presence:   bandScore(rawPresence, dancePeak.presence, danceMean.presence),
+    bass:       bandScore(rawBass,   dancePeak.bass,   danceMean.bass,   1.00),
+    mid:        bandScore(rawMid,    dancePeak.mid,    danceMean.mid,    1.40),
+    treble:     bandScore(rawTreble, dancePeak.treble, danceMean.treble, 1.60),
     beat:       Math.min(beat, 1),
     piano:      oa > 0.02 ? Math.min(1, Math.max(0, (0.15 - oa) / 0.15)) : 0,
     mezzoforte: oa > 0.02 ? Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)) : 0,
@@ -3375,7 +3366,7 @@ function danceLoop() {
   let spinBoost = 0;
   const mvs = appState.movements;
   if (mvs) {
-    const bmap = { bass: danceSmooth.bass, mid: danceSmooth.mid, treble: danceSmooth.treble, presence: danceSmooth.presence, beat: danceSmooth.beat, piano: danceSmooth.piano, mezzoforte: danceSmooth.mezzoforte, forte: danceSmooth.forte };
+    const bmap = { bass: danceSmooth.bass, mid: danceSmooth.mid, treble: danceSmooth.treble, beat: danceSmooth.beat, piano: danceSmooth.piano, mezzoforte: danceSmooth.mezzoforte, forte: danceSmooth.forte };
     for (const [key, cfg] of Object.entries(mvs)) {
       if (cfg && cfg.movement === 'spin') spinBoost += (cfg.intensity/10) * (bmap[key]||0) * 0.025;
     }
@@ -3393,11 +3384,10 @@ function danceLoop() {
   // Audio bands with peak-hold smoothing
   const raw = danceGetBands();
   const alpha = 0.25;
-  danceSmooth.bass       = Math.max(raw.bass,       danceSmooth.bass       * 0.82) * (1-alpha) + raw.bass       * alpha;
-  danceSmooth.mid        = Math.max(raw.mid,        danceSmooth.mid        * 0.82) * (1-alpha) + raw.mid        * alpha;
-  danceSmooth.treble     = Math.max(raw.treble,     danceSmooth.treble     * 0.82) * (1-alpha) + raw.treble     * alpha;
-  danceSmooth.presence   = Math.max(raw.presence,   danceSmooth.presence   * 0.82) * (1-alpha) + raw.presence   * alpha;
-  danceSmooth.beat       = Math.max(raw.beat,       danceSmooth.beat       * 0.70) * (1-alpha) + raw.beat       * alpha;
+  danceSmooth.bass   = Math.max(raw.bass,   danceSmooth.bass   * 0.82) * (1-alpha) + raw.bass   * alpha;
+  danceSmooth.mid    = Math.max(raw.mid,    danceSmooth.mid    * 0.82) * (1-alpha) + raw.mid    * alpha;
+  danceSmooth.treble = Math.max(raw.treble, danceSmooth.treble * 0.82) * (1-alpha) + raw.treble * alpha;
+  danceSmooth.beat   = Math.max(raw.beat,   danceSmooth.beat   * 0.70) * (1-alpha) + raw.beat   * alpha;
   danceSmooth.piano      = Math.max(raw.piano,      danceSmooth.piano      * 0.78) * (1-alpha) + raw.piano      * alpha;
   danceSmooth.mezzoforte = Math.max(raw.mezzoforte, danceSmooth.mezzoforte * 0.80) * (1-alpha) + raw.mezzoforte * alpha;
   danceSmooth.forte      = Math.max(raw.forte,      danceSmooth.forte      * 0.82) * (1-alpha) + raw.forte      * alpha;
@@ -3436,7 +3426,7 @@ function danceLoop() {
 
   // Update all band meter bars
   const toW = v => Math.round(Math.min(100, v * 100 * 2.5)) + '%';
-  ['bass','mid','treble','presence','beat','piano','mezzoforte','forte'].forEach(key => {
+  ['bass','mid','treble','beat','piano','mezzoforte','forte'].forEach(key => {
     const el = document.getElementById('meter-' + key);
     if (el) el.style.width = toW(danceSmooth[key] || 0);
   });
@@ -3467,8 +3457,8 @@ function buildDanceAssignMeters() {
   const container = document.getElementById('dance-assign-meters');
   if (!container) return;
   container.innerHTML = '';
-  const BAND_COLOR = { bass:'#E8624A', mid:'#3DAA6A', treble:'#9B72CF', presence:'#E8C44A', beat:'#4AB5E8', piano:'#7BAFD4', mezzoforte:'#D4A827', forte:'#C54444' };
-  const BAND_NAME  = { bass:'Bass', mid:'Mid / Melody', treble:'Treble', presence:'Vocals', beat:'Beat / Kick', piano:'Piano (soft)', mezzoforte:'Mezzoforte', forte:'Forte (loud)' };
+  const BAND_COLOR = { bass:'#E8624A', mid:'#3DAA6A', treble:'#9B72CF', beat:'#4AB5E8', piano:'#7BAFD4', mezzoforte:'#D4A827', forte:'#C54444' };
+  const BAND_NAME  = { bass:'Bass', mid:'Mid / Melody', treble:'Treble', beat:'Beat / Kick', piano:'Piano (soft)', mezzoforte:'Mezzoforte', forte:'Forte (loud)' };
   const MOVE_SHORT = { open2fold:'2-fold open', open3fold:'3-fold open', open5fold:'5-fold open', wiggle:'wiggle', pulse:'pulse', spin:'spin', none:'' };
   const mvs = appState.movements;
   const keys = mvs ? Object.keys(BAND_COLOR) : ['bass','mid','treble'];
@@ -3520,15 +3510,15 @@ function drawFreqViz() {
     open2fold:[232,98,74],   wiggle:[232,196,74],
     pulse:[74,181,232],      spin:[135,206,235],
   };
-  const bassEnd   = Math.floor(bufLen * 0.05);
-  const midEnd    = Math.floor(bufLen * 0.30);
-  const trebleEnd = Math.floor(bufLen * 0.70);
+  const bassEnd   = Math.floor(bufLen * 0.020);
+  const midEnd    = Math.floor(bufLen * 0.150);
+  const trebleEnd = Math.floor(bufLen * 0.500);
 
   for (let i = 0; i < BARS; i++) {
-    const bin  = Math.floor(i / BARS * bufLen * 0.80);
+    const bin  = Math.floor(i / BARS * bufLen * 0.60);
     const val  = data[bin] / 255;
     if (val < 0.015) continue;
-    const band = bin < bassEnd ? 'bass' : bin < midEnd ? 'mid' : bin < trebleEnd ? 'treble' : 'presence';
+    const band = bin < bassEnd ? 'bass' : bin < midEnd ? 'mid' : 'treble';
     const [r,g,b] = MV_RGB[mvs?.[band]?.movement] || [110,150,195];
     const barH = val * H, x = i * bW;
 
@@ -3562,7 +3552,7 @@ function drawAxisGlow() {
   const mvs = appState.movements;
   if (!mvs) return;
   const sm  = danceSmooth;
-  const bmap = { bass:sm.bass, mid:sm.mid, treble:sm.treble, presence:sm.presence, beat:sm.beat };
+  const bmap = { bass:sm.bass, mid:sm.mid, treble:sm.treble, beat:sm.beat };
 
   let a5=0, a3=0, a2=0;
   for (const [key,cfg] of Object.entries(mvs)) {
@@ -3600,7 +3590,7 @@ function applyMolstarDanceEffect(smooth, movements) {
 
   if (movements) {
     const bmap = { bass: smooth.bass, mid: smooth.mid, treble: smooth.treble,
-                   presence: smooth.presence, beat: smooth.beat };
+                   beat: smooth.beat };
     for (const [key, cfg] of Object.entries(movements)) {
       if (!cfg || cfg.movement === 'none') continue;
       const v = (bmap[key] || 0) * (cfg.intensity / 10);
@@ -3655,7 +3645,7 @@ function applyMolstarDanceEffect(smooth, movements) {
   let glowColor = null, glowAmp = 0;
   if (movements) {
     const bmap2 = { bass: smooth.bass, mid: smooth.mid, treble: smooth.treble,
-                    presence: smooth.presence, beat: smooth.beat };
+                    beat: smooth.beat };
     let a5=0, a3=0, a2=0;
     for (const [key,cfg] of Object.entries(movements)) {
       if (!cfg||cfg.movement==='none') continue;

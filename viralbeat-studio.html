@@ -179,10 +179,18 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 .card-viewer-section{height:220px;background:#1a1a2e;position:relative;flex-shrink:0;}
 #molstar-card-wrap{width:100%;height:100%;}
 .capture-btn{position:absolute;bottom:8px;right:8px;padding:6px 12px;background:rgba(255,255,255,0.9);border-radius:8px;border:none;cursor:pointer;font-family:'Lora',serif;font-size:0.75rem;font-weight:600;color:var(--text);}
-.card-middle{padding:12px 14px;flex:1;}
-.card-input{width:100%;border:none;border-bottom:1.5px solid var(--cream-dark);padding:6px 2px;font-family:'Lora',serif;font-size:0.85rem;color:var(--text);outline:none;background:transparent;margin-bottom:10px;}
+.card-middle{padding:12px 14px;flex:1;display:flex;flex-direction:column;min-height:0;}
+.card-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;flex-shrink:0;}
+.card-virus-name{font-family:'Playfair Display',serif;font-size:1.02rem;font-weight:700;color:var(--text);line-height:1.2;flex:1;}
+.card-t-col{flex-shrink:0;text-align:right;}
+.card-t-label{font-size:0.58rem;color:var(--text-light);letter-spacing:.04em;text-transform:uppercase;margin-bottom:1px;}
+.card-t-input{width:46px;border:none;border-bottom:1.5px solid var(--cream-dark);text-align:right;font-size:0.82rem;font-weight:700;color:var(--sage-dark);background:transparent;outline:none;font-family:'Lora',serif;padding:2px 0;}
+.card-t-input:focus{border-bottom-color:var(--sage);}
+.card-input{width:100%;border:none;border-bottom:1.5px solid var(--cream-dark);padding:5px 2px;font-family:'Lora',serif;font-size:0.83rem;color:var(--text);outline:none;background:transparent;margin-bottom:8px;flex-shrink:0;}
 .card-input:focus{border-bottom-color:var(--sage);}
-.card-input-label{font-size:0.7rem;color:var(--text-light);margin-bottom:2px;}
+.card-funfact-area{flex:1;min-height:46px;resize:none;border:none;border-bottom:1.5px solid var(--cream-dark);padding:5px 2px;font-family:'Lora',serif;font-size:0.83rem;color:var(--text);outline:none;background:transparent;width:100%;}
+.card-funfact-area:focus{border-bottom-color:var(--sage);}
+.card-input-label{font-size:0.68rem;color:var(--text-light);margin-bottom:2px;flex-shrink:0;}
 .card-bottom{background:var(--cream);padding:12px 14px;border-top:1px solid var(--cream-dark);}
 .card-fold-row{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-mid);margin-bottom:6px;}
 .card-controls{padding:8px 0;}
@@ -966,15 +974,22 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
           <button class="capture-btn" onclick="captureCard()">📸 Capture View</button>
         </div>
         <div class="card-middle">
-          <div style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:10px;" id="card-virus-title"></div>
-          <div class="card-input-label">T Symmetry</div>
-          <input class="card-input" id="card-t" placeholder="T = ?" oninput="updateCard('tSymmetry',this.value)">
+          <!-- Virus name + T symmetry on one row -->
+          <div class="card-title-row">
+            <div class="card-virus-name" id="card-virus-title"></div>
+            <div class="card-t-col">
+              <div class="card-t-label">T sym.</div>
+              <input class="card-t-input" id="card-t" placeholder="T=?" oninput="updateCard('tSymmetry',this.value)">
+            </div>
+          </div>
+          <!-- Habitat / Disease compact fields -->
           <div class="card-input-label">Habitat / Host</div>
           <input class="card-input" id="card-habitat" placeholder="Where does this virus live?" oninput="updateCard('habitat',this.value)">
           <div class="card-input-label">Disease / Role</div>
-          <input class="card-input" id="card-disease" placeholder="What disease or biological role?" oninput="updateCard('disease',this.value)">
+          <input class="card-input" id="card-disease" placeholder="Disease or biological role?" oninput="updateCard('disease',this.value)">
+          <!-- Fun fact as textarea — expands to fill remaining card height -->
           <div class="card-input-label">Fun Fact</div>
-          <input class="card-input" id="card-funfact" placeholder="Did you know...?" oninput="updateCard('funFact',this.value)">
+          <textarea class="card-funfact-area" id="card-funfact" placeholder="Did you know...?" oninput="updateCard('funFact',this.value)"></textarea>
         </div>
         <div class="card-bottom">
           <div id="card-folds-display"></div>
@@ -987,30 +1002,11 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
 
     <div class="card-controls">
       <div class="panel">
-        <div class="section-title mb-12">Card Information</div>
-        <p class="text-sm text-light mb-16">Fill in the fields directly on the card (left), or edit here:</p>
+        <div class="section-title mb-8">Card Information</div>
+        <p class="text-sm text-light" style="margin-bottom:12px;">Fill in the fields directly on the card (left), or edit here:</p>
 
-        <div class="ctrl-group">
-          <label class="ctrl-label">T Symmetry Number</label>
-          <input class="ctrl-input" id="ctrl-t" oninput="syncCardField('tSymmetry','card-t',this.value)">
-        </div>
-        <div class="ctrl-group">
-          <label class="ctrl-label">Habitat / Host</label>
-          <input class="ctrl-input" id="ctrl-habitat" oninput="syncCardField('habitat','card-habitat',this.value)">
-        </div>
-        <div class="ctrl-group">
-          <label class="ctrl-label">Disease / Biological Role</label>
-          <input class="ctrl-input" id="ctrl-disease" oninput="syncCardField('disease','card-disease',this.value)">
-        </div>
-        <div class="ctrl-group">
-          <label class="ctrl-label">Fun Fact</label>
-          <input class="ctrl-input" id="ctrl-funfact" oninput="syncCardField('funFact','card-funfact',this.value)">
-        </div>
-
-        <hr class="divider">
-        <div class="section-title mb-8">Visualization Style</div>
-        <p class="text-sm text-light" style="margin-bottom:10px;">Adjust how the 3D capsid looks on the card, then press Apply.</p>
-
+        <!-- Visualization Style — first so students style the capsid before filling text -->
+        <div class="section-title mb-6" style="font-size:0.78rem;color:var(--text-mid);">Visualization Style</div>
         <div class="ctrl-group">
           <label class="ctrl-label">Representation</label>
           <select class="ctrl-input" id="card-style-preset">
@@ -1024,7 +1020,6 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
             <option value="putty">Putty / Tube</option>
           </select>
         </div>
-
         <div class="ctrl-group">
           <label class="ctrl-label">Color By</label>
           <select class="ctrl-input" id="card-color-by">
@@ -1040,8 +1035,28 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
             <option value="uncertainty">B-factor / Uncertainty</option>
           </select>
         </div>
-
         <button class="btn btn-primary" onclick="applyCardVisualization()" style="width:100%;margin-bottom:14px;font-size:0.84rem;padding:9px 0;">Apply Style →</button>
+
+        <hr class="divider">
+
+        <!-- Card text fields -->
+        <div class="section-title mb-6" style="font-size:0.78rem;color:var(--text-mid);">Card Text</div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">T Symmetry Number</label>
+          <input class="ctrl-input" id="ctrl-t" oninput="syncCardField('tSymmetry','card-t',this.value)">
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Habitat / Host</label>
+          <input class="ctrl-input" id="ctrl-habitat" oninput="syncCardField('habitat','card-habitat',this.value)">
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Disease / Biological Role</label>
+          <input class="ctrl-input" id="ctrl-disease" oninput="syncCardField('disease','card-disease',this.value)">
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Fun Fact</label>
+          <textarea class="ctrl-input" id="ctrl-funfact" rows="3" style="resize:vertical;min-height:60px;" oninput="syncCardField('funFact','card-funfact',this.value)"></textarea>
+        </div>
 
         <hr class="divider">
         <div class="section-title mb-8">Mapping Summary</div>

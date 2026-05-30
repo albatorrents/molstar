@@ -124,6 +124,20 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 .meta-chip:hover{border-color:var(--sage);color:var(--text);}
 .meta-chip.selected{background:var(--sage);border-color:var(--sage-dark);color:white;font-weight:600;}
 .file-input-wrap{position:relative;display:inline-block;}
+.assign-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--cream-dark);}
+.assign-row:last-child{border-bottom:none;}
+.assign-band{display:flex;align-items:center;gap:8px;min-width:155px;border-left:3px solid;padding-left:10px;border-radius:0 4px 4px 0;}
+.assign-band-icon{font-size:1.25rem;line-height:1;}
+.assign-band-name{font-weight:700;font-size:0.85rem;color:var(--text);line-height:1.2;}
+.assign-band-freq{font-size:0.7rem;color:var(--text-light);}
+.assign-select{flex:1;padding:8px 10px;border:1.5px solid var(--sage-light);border-radius:8px;font-family:'Lora',serif;font-size:0.82rem;color:var(--text);background:white;outline:none;min-width:0;cursor:pointer;}
+.assign-select:focus{border-color:var(--sage-dark);}
+.assign-int-wrap{display:flex;flex-direction:column;gap:3px;min-width:76px;}
+.assign-int-label{font-size:0.68rem;color:var(--text-light);text-align:center;}
+.assign-int-slider{width:100%;accent-color:var(--sage-dark);}
+.assign-dots{display:flex;gap:3px;justify-content:center;}
+.dot-pip{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.move-guide-row{padding:5px 9px;background:var(--cream-dark);border-radius:6px;line-height:1.55;color:var(--text-mid);}
 .file-input-wrap input[type=file]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
 .file-input-label{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--lavender-light);border:2px dashed var(--lavender);border-radius:10px;cursor:pointer;color:var(--text-mid);font-family:'Lora',serif;font-size:0.875rem;}
 
@@ -710,68 +724,67 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
 <!-- =================== STAGE 3 =================== -->
 <div id="stage-3" class="stage">
   <h2 class="stage-title">Stage 3 — The Dancing Capsid</h2>
-  <p class="stage-desc">Assign each symmetry axis a musical element — your capsid will open and close with the beat.</p>
+  <p class="stage-desc">Choose how each part of the music moves the capsid. Audio is being analyzed in the background so the animation is perfectly in sync.</p>
 
-  <div class="two-col">
+  <!-- Preprocessing bar -->
+  <div id="preproc-wrap" style="background:white;border-radius:14px;padding:16px 22px;margin-bottom:22px;box-shadow:0 2px 12px rgba(0,0,0,0.07);display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-family:'Lora',serif;font-size:0.9rem;font-weight:700;color:var(--sage-dark);">Analyzing your audio…</span>
+      <span id="preproc-pct" style="font-size:0.82rem;color:var(--text-mid);">0%</span>
+    </div>
+    <div style="background:var(--cream-dark);border-radius:100px;height:8px;overflow:hidden;">
+      <div id="preproc-fill" style="height:100%;background:linear-gradient(90deg,var(--sage),var(--lavender));border-radius:100px;width:0%;transition:width .4s ease;"></div>
+    </div>
+    <div id="preproc-status" style="font-size:0.77rem;color:var(--text-light);margin-top:6px;font-style:italic;"></div>
+  </div>
+
+  <div class="two-col" style="align-items:start;">
     <div>
-      <!-- 2-Fold Panel -->
-      <div class="fold-panel fold2-panel" id="panel-fold2">
-        <div class="fold-panel-header" onclick="toggleFoldPanel('fold2')">
-          <span>2-Fold Axes <span style="font-weight:400;font-size:0.8rem;opacity:.7;">(30 axes)</span></span>
-          <span class="arrow">▼</span>
-        </div>
-        <div class="fold-panel-body" id="body-fold2">
-          <div id="content-fold2"></div>
-        </div>
+      <div class="panel mb-12">
+        <div class="section-title mb-4">Music → Capsid Movement</div>
+        <p class="text-sm text-light mb-14">For each frequency band, pick what the capsid does when that part of the music gets loud. Adjust intensity to control how dramatically it moves.</p>
+        <div id="assign-rows"></div>
       </div>
 
-      <!-- 3-Fold Panel -->
-      <div class="fold-panel fold3-panel" id="panel-fold3">
-        <div class="fold-panel-header" onclick="toggleFoldPanel('fold3')">
-          <span>3-Fold Axes <span style="font-weight:400;font-size:0.8rem;opacity:.7;">(20 axes)</span></span>
-          <span class="arrow">▼</span>
+      <div class="panel">
+        <div class="section-title mb-10">Movement Guide</div>
+        <div style="display:grid;gap:7px;font-size:0.82rem;">
+          <div class="move-guide-row"><span style="color:#E8624A;font-weight:700;">Open 2-fold (edges)</span> — 30 rhombic openings along each icosahedral edge breathe apart</div>
+          <div class="move-guide-row"><span style="color:#3DAA6A;font-weight:700;">Open 3-fold (faces)</span> — 20 triangular windows at each face centre bloom outward</div>
+          <div class="move-guide-row"><span style="color:#9B72CF;font-weight:700;">Open 5-fold (vertices)</span> — 12 pentagonal portals at each vertex flare open</div>
+          <div class="move-guide-row"><span style="color:#E8C44A;font-weight:700;">Wiggle / vibrate</span> — the whole capsid shakes with micro-vibrations</div>
+          <div class="move-guide-row"><span style="color:#4AB5E8;font-weight:700;">Pulse whole capsid</span> — the structure swells and contracts as one</div>
+          <div class="move-guide-row"><span style="color:#c0775a;font-weight:700;">Spin faster</span> — auto-rotation speed scales with the band energy</div>
         </div>
-        <div class="fold-panel-body" id="body-fold3">
-          <div id="content-fold3"></div>
-        </div>
-      </div>
-
-      <!-- 5-Fold Panel -->
-      <div class="fold-panel fold5-panel" id="panel-fold5">
-        <div class="fold-panel-header" onclick="toggleFoldPanel('fold5')">
-          <span>5-Fold Axes <span style="font-weight:400;font-size:0.8rem;opacity:.7;">(12 axes)</span></span>
-          <span class="arrow">▼</span>
-        </div>
-        <div class="fold-panel-body" id="body-fold5">
-          <div id="content-fold5"></div>
-        </div>
-      </div>
-
-      <hr class="divider">
-      <div class="section-title mb-8">Mapping Summary</div>
-      <div style="overflow-x:auto;">
-        <table class="summary-table" id="summary-table">
-          <thead>
-            <tr><th>Fold</th><th>Subunits</th><th>Instrument</th><th>Dynamics</th><th>Beat</th><th>Rhythm</th></tr>
-          </thead>
-          <tbody id="summary-body"></tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:20px;display:flex;gap:10px;align-items:center;">
-        <button class="btn btn-secondary" onclick="goToStage(2)">← Back to Audio</button>
-        <button class="btn btn-primary" onclick="goToStage('dance')">Finalize Mapping →</button>
       </div>
     </div>
 
     <div>
-      <div class="viewer-slot" id="stage-3-viewer-slot" style="height:420px;"></div>
-      <div class="axis-btn-row" style="margin-top:10px;">
-        <button class="axis-btn fold2" id="s3-btn-fold2" onclick="toggleAxis('fold2')">2-Fold</button>
-        <button class="axis-btn fold3" id="s3-btn-fold3" onclick="toggleAxis('fold3')">3-Fold</button>
-        <button class="axis-btn fold5" id="s3-btn-fold5" onclick="toggleAxis('fold5')">5-Fold</button>
+      <div class="panel mb-12">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="section-title" style="margin:0;">Live Preview</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button id="s3-play-btn" class="btn btn-secondary" onclick="toggleS3Audio()" style="padding:7px 16px;font-size:0.82rem;">▶ Play</button>
+            <span id="s3-audio-time" style="font-size:0.78rem;color:var(--text-light);">0:00</span>
+          </div>
+        </div>
+        <canvas id="s3-preview-canvas" width="380" height="280" style="width:100%;border-radius:10px;background:#0e1f30;display:block;"></canvas>
+        <p class="text-sm text-light" style="margin-top:6px;">Press ▶ to hear your track and see the capsid respond to each band in real time.</p>
+      </div>
+
+      <div class="panel">
+        <div class="section-title mb-8">Frequency Spectrum</div>
+        <canvas id="spectrum-canvas" width="380" height="90" style="width:100%;border-radius:8px;background:var(--cream-dark);display:block;"></canvas>
+        <div style="display:flex;justify-content:space-between;font-size:0.71rem;color:var(--text-light);margin-top:4px;padding:0 2px;">
+          <span style="color:#E8624A;">Bass</span><span style="color:#3DAA6A;">Mid</span><span style="color:#E8C44A;">Vocals</span><span style="color:#9B72CF;">Treble</span>
+        </div>
       </div>
     </div>
+  </div>
+
+  <div style="margin-top:24px;display:flex;gap:10px;align-items:center;">
+    <button class="btn btn-secondary" onclick="goToStage(2)">← Back to Audio</button>
+    <button class="btn btn-primary" onclick="goToStage('dance')">Start Dancing →</button>
   </div>
 </div>
 
@@ -1082,6 +1095,7 @@ const appState = {
   audioDuration: 0,
   musicMeta: null,
   audioBoosts: { bass: 1, mid: 1, treble: 1 },
+  movements: null,
   mappings: {
     fold2: { subunits: 30, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Piano', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' },
     fold3: { subunits: 20, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Strings', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' },
@@ -1395,175 +1409,271 @@ function convertYouTubeUrl() {
 }
 
 // ============================================================
-// STAGE 3 — MAPPING PANELS
+// STAGE 3 — THE DANCING CAPSID (assignment UI + preprocessing)
 // ============================================================
-const beatOptions = ['Quarter Note','Half Note','Triplet','Quintuplet','Syncopated','Rest'];
-const instrumentOptions = ['Piano','Strings','Brass','Woodwind','Percussion','Voice','Synthesizer'];
-const rhythmOptions = ['Steady Pulse','Swing','Polyrhythm','Accelerando','Ritardando','Silence'];
-const dynamicsOptions = ['pp','p','mf','f','ff','Crescendo','Decrescendo'];
+const BAND_DEFS = [
+  { key:'bass',     icon:'🔈', name:'Bass',          freq:'0–200 Hz',    default:'open2fold', color:'#E8624A' },
+  { key:'mid',      icon:'🎵', name:'Mid / Melody',  freq:'200–2k Hz',   default:'open3fold', color:'#3DAA6A' },
+  { key:'treble',   icon:'✨', name:'Treble',        freq:'2–8k Hz',     default:'open5fold', color:'#9B72CF' },
+  { key:'presence', icon:'🎤', name:'Vocals / Pres.',freq:'1–5k Hz',     default:'wiggle',    color:'#E8C44A' },
+  { key:'beat',     icon:'🥁', name:'Beat / Kick',   freq:'onset detect',default:'pulse',     color:'#4AB5E8' },
+];
+const MOVE_OPTIONS = [
+  { value:'open2fold', label:'Open 2-fold axis (edges)' },
+  { value:'open3fold', label:'Open 3-fold axis (faces)' },
+  { value:'open5fold', label:'Open 5-fold axis (vertices)' },
+  { value:'wiggle',    label:'Wiggle / vibrate' },
+  { value:'pulse',     label:'Pulse whole capsid' },
+  { value:'spin',      label:'Spin faster' },
+  { value:'none',      label:'— No movement —' },
+];
 
-function buildFoldPanelContent(fold) {
-  const m = appState.mappings[fold];
-  const label = fold === 'fold2' ? '2' : fold === 'fold3' ? '3' : '5';
-  return `
-  <div class="mb-12">
-    <div class="mapping-label">Subunit Count (${fold === 'fold2' ? '2-60' : '2-60'})</div>
-    <div class="slider-wrap">
-      <input type="range" min="2" max="60" value="${m.subunits}" oninput="updateMapping('${fold}','subunits',+this.value);document.getElementById('sv-${fold}').textContent=this.value;updateSummaryTable();">
-      <span class="slider-val" id="sv-${fold}">${m.subunits}</span>
-    </div>
-  </div>
+let s3AudioCtx = null, s3Analyser = null, s3AudioConnected = false;
+let s3SpectrumRAF = null, s3PreviewRAF = null;
+let s3M = [1,0,0,0,1,0,0,0,1];
+const s3MulM3 = (A,B) => [
+  A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
+  A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8],
+  A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8]
+];
 
-  <div class="mb-12">
-    <div class="mapping-label">Orientation</div>
-    <div class="orient-section">
-      <div class="orient-sliders">
-        <div class="mb-8">
-          <div class="mapping-label">X Rotation: <span id="ox-${fold}">${m.x}°</span></div>
-          <input type="range" min="0" max="360" value="${m.x}" oninput="updateMapping('${fold}','x',+this.value);document.getElementById('ox-${fold}').textContent=this.value+'°';updateOrientDiagram('${fold}',+this.value)">
-        </div>
-        <div class="mb-8">
-          <div class="mapping-label">Y Rotation: <span id="oy-${fold}">${m.y}°</span></div>
-          <input type="range" min="0" max="360" value="${m.y}" oninput="updateMapping('${fold}','y',+this.value);document.getElementById('oy-${fold}').textContent=this.value+'°';applyViewerRotation('${fold}')">
-        </div>
-        <div>
-          <div class="mapping-label">Z Rotation: <span id="oz-${fold}">${m.z}°</span></div>
-          <input type="range" min="0" max="360" value="${m.z}" oninput="updateMapping('${fold}','z',+this.value);document.getElementById('oz-${fold}').textContent=this.value+'°';applyViewerRotation('${fold}')">
-        </div>
-      </div>
-      <div class="orient-diagram">
-        <svg id="orient-svg-${fold}" width="60" height="60" viewBox="0 0 60 60">
-          <circle cx="30" cy="30" r="26" fill="none" stroke="#e0d8ce" stroke-width="2"/>
-          <line id="orient-line-${fold}" x1="30" y1="30" x2="30" y2="4" stroke="${fold==='fold2'?'#E8937F':fold==='fold3'?'#8FAF8F':'#C3B1D9'}" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-    </div>
-  </div>
-
-  <div class="mapping-row">
-    <div>
-      <div class="mapping-label">Beat Pattern</div>
-      <select class="mapping-select" onchange="updateMapping('${fold}','beat',this.value);updateSummaryTable();">
-        ${beatOptions.map(o=>`<option ${m.beat===o?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>
-    <div>
-      <div class="mapping-label">Instrument</div>
-      <select class="mapping-select" onchange="updateMapping('${fold}','instrument',this.value);applyInstrumentFilter(this.value);updateSummaryTable();">
-        ${instrumentOptions.map(o=>`<option ${m.instrument===o?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>
-    <div>
-      <div class="mapping-label">Rhythm Feel</div>
-      <select class="mapping-select" onchange="updateMapping('${fold}','rhythm',this.value);updateSummaryTable();">
-        ${rhythmOptions.map(o=>`<option ${m.rhythm===o?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>
-    <div>
-      <div class="mapping-label">Dynamics</div>
-      <select class="mapping-select" onchange="updateMapping('${fold}','dynamics',this.value);applyDynamicsOpacity(this.value);updateSummaryTable();">
-        ${dynamicsOptions.map(o=>`<option ${m.dynamics===o?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>
-  </div>
-
-  <div>
-    <div class="mapping-label">Justification</div>
-    <textarea class="justify-area" placeholder="I chose this mapping because..." oninput="updateMapping('${fold}','justification',this.value)">${m.justification}</textarea>
-  </div>`;
-}
-
-function updateOrientDiagram(fold, angleDeg) {
-  const line = document.getElementById('orient-line-' + fold);
-  if (!line) return;
-  const rad = (angleDeg - 90) * Math.PI / 180;
-  const r = 26;
-  const x2 = 30 + r * Math.cos(rad);
-  const y2 = 30 + r * Math.sin(rad);
-  line.setAttribute('x2', x2);
-  line.setAttribute('y2', y2);
-}
-
-function applyViewerRotation(fold) {
-  const m = appState.mappings[fold];
-  const wrap = document.getElementById('molstar-main-wrap');
-  if (wrap) {
-    wrap.style.transform = `perspective(600px) rotateX(${m.y * 0.1}deg) rotateY(${m.x * 0.1}deg)`;
+function initStage3() {
+  if (!appState.movements) {
+    appState.movements = {};
+    BAND_DEFS.forEach(b => { appState.movements[b.key] = { movement: b.default, intensity: 7 }; });
   }
-  updateOrientDiagram(fold, m.x);
+  buildAssignRows();
+  if (appState.audioFile && !appState.audioFrames) preprocessAudio();
+  startS3Loops();
 }
 
-function applyDynamicsOpacity(val) {
-  const opacityMap = { pp: 0.3, p: 0.5, mf: 0.65, f: 0.8, ff: 1.0, Crescendo: 0.7, Decrescendo: 0.7 };
-  const wrap = document.getElementById('molstar-main-wrap');
-  if (wrap) wrap.style.opacity = opacityMap[val] || 0.65;
+function stopStage3() {
+  if (s3SpectrumRAF) { cancelAnimationFrame(s3SpectrumRAF); s3SpectrumRAF = null; }
+  if (s3PreviewRAF)  { cancelAnimationFrame(s3PreviewRAF);  s3PreviewRAF  = null; }
+  const audioEl = document.getElementById('audio-el');
+  if (audioEl && !audioEl.paused) { audioEl.pause(); updateS3PlayBtn(false); }
 }
 
-function applyInstrumentFilter(instrument) {
-  const wrap = document.getElementById('molstar-main-wrap');
-  if (!wrap) return;
-  wrap.classList.remove('synth-anim');
-  const filters = {
-    Piano: 'grayscale(100%)',
-    Strings: 'sepia(60%) saturate(120%)',
-    Brass: 'sepia(100%) saturate(180%) brightness(110%)',
-    Woodwind: 'hue-rotate(90deg) saturate(130%)',
-    Voice: 'hue-rotate(300deg) saturate(120%)',
-    Percussion: 'hue-rotate(200deg) saturate(150%)',
-    Synthesizer: ''
-  };
-  if (instrument === 'Synthesizer') {
-    wrap.style.filter = '';
-    wrap.classList.add('synth-anim');
-  } else {
-    wrap.style.filter = filters[instrument] || '';
-  }
+function buildAssignRows() {
+  const container = document.getElementById('assign-rows');
+  if (!container) return;
+  container.innerHTML = '';
+  BAND_DEFS.forEach(band => {
+    const m = appState.movements[band.key] || { movement: band.default, intensity: 7 };
+    const row = document.createElement('div');
+    row.className = 'assign-row';
+    row.innerHTML =
+      `<div class="assign-band" style="border-left-color:${band.color}">
+        <span class="assign-band-icon">${band.icon}</span>
+        <div><div class="assign-band-name">${band.name}</div><div class="assign-band-freq">${band.freq}</div></div>
+      </div>
+      <select class="assign-select" onchange="updateMovement('${band.key}','movement',this.value)">
+        ${MOVE_OPTIONS.map(o=>`<option value="${o.value}"${m.movement===o.value?' selected':''}>${o.label}</option>`).join('')}
+      </select>
+      <div class="assign-int-wrap">
+        <div class="assign-int-label">Intensity</div>
+        <input type="range" min="1" max="10" value="${m.intensity}" class="assign-int-slider"
+               oninput="updateMovement('${band.key}','intensity',+this.value);updateDots('${band.key}',+this.value,'${band.color}')">
+        <div class="assign-dots" id="dots-${band.key}">${makeDots(m.intensity,band.color)}</div>
+      </div>`;
+    container.appendChild(row);
+  });
 }
 
-function updateMapping(fold, key, value) {
-  appState.mappings[fold][key] = value;
+function makeDots(intensity, color) {
+  const filled = Math.round(intensity / 2);
+  return Array.from({length:5},(_,i)=>`<span class="dot-pip" style="background:${i<filled?color:'var(--cream-dark)'}"></span>`).join('');
+}
+function updateDots(band, intensity, color) {
+  const el = document.getElementById('dots-'+band);
+  if (el) el.innerHTML = makeDots(intensity, color || BAND_DEFS.find(b=>b.key===band)?.color || '#999');
+}
+function updateMovement(band, key, value) {
+  if (!appState.movements) appState.movements = {};
+  if (!appState.movements[band]) appState.movements[band] = { movement:'none', intensity:5 };
+  appState.movements[band][key] = key==='intensity' ? +value : value;
   saveSession();
 }
 
-function toggleFoldPanel(fold) {
-  const body = document.getElementById('body-' + fold);
-  const header = body.previousElementSibling;
-  const isOpen = body.classList.contains('open');
-  // Close all
-  ['fold2','fold3','fold5'].forEach(f => {
-    document.getElementById('body-'+f)?.classList.remove('open');
-    document.getElementById('body-'+f)?.previousElementSibling?.classList.remove('open');
-  });
-  if (!isOpen) {
-    body.classList.add('open');
-    header.classList.add('open');
-    // Show axis for this fold only
-    appState.axisToggles = { fold2: false, fold3: false, fold5: false };
-    appState.axisToggles[fold] = true;
-    updateAxisBtns();
-    redrawAxisCanvas();
+// ---- audio preprocessing ----
+async function preprocessAudio() {
+  const audioEl = document.getElementById('audio-el');
+  if (!audioEl?.src) return;
+  const wrap = document.getElementById('preproc-wrap');
+  if (wrap) wrap.style.display = 'block';
+  const setP = (pct, status) => {
+    const f=document.getElementById('preproc-fill'), p=document.getElementById('preproc-pct'), s=document.getElementById('preproc-status');
+    if(f) f.style.width=(pct*100).toFixed(0)+'%';
+    if(p) p.textContent=(pct*100).toFixed(0)+'%';
+    if(s) s.textContent=status;
+  };
+  try {
+    setP(0.02,'Fetching audio data…');
+    const resp = await fetch(audioEl.src);
+    const arrayBuf = await resp.arrayBuffer();
+    setP(0.10,'Decoding audio…');
+    const tmpCtx = new AudioContext();
+    const decoded = await tmpCtx.decodeAudioData(arrayBuf);
+    await tmpCtx.close();
+    setP(0.18,'Analyzing frequency bands…');
+    const [bF,mF,tF,pF] = await Promise.all([
+      renderBand(decoded,20,200),
+      renderBand(decoded,200,2000),
+      renderBand(decoded,2000,8000),
+      renderBand(decoded,1000,5000),
+    ]);
+    setP(0.88,'Detecting beats…');
+    const beatF = detectBeats(bF);
+    const n = Math.min(bF.length,mF.length,tF.length,pF.length,beatF.length);
+    appState.audioFrames = Array.from({length:n},(_,i)=>({bass:bF[i],mid:mF[i],treble:tF[i],presence:pF[i],beat:beatF[i]}));
+    appState.audioFrameRate = 30;
+    setP(1,'✅ Audio analyzed — assign movements and press Start Dancing!');
+    setTimeout(()=>{ if(wrap) wrap.style.display='none'; }, 3500);
+  } catch(e) {
+    console.warn('Audio preprocessing failed:',e);
+    setP(1,'⚠️ Could not pre-analyze audio — real-time mode will be used.');
+    appState.audioFrames = null;
+    setTimeout(()=>{ if(wrap) wrap.style.display='none'; }, 3500);
   }
 }
 
-function updateSummaryTable() {
-  const tbody = document.getElementById('summary-body');
-  if (!tbody) return;
-  const folds = [
-    { key: 'fold2', label: '2-Fold', color: '#E8937F' },
-    { key: 'fold3', label: '3-Fold', color: '#8FAF8F' },
-    { key: 'fold5', label: '5-Fold', color: '#C3B1D9' }
-  ];
-  tbody.innerHTML = folds.map(f => {
-    const m = appState.mappings[f.key];
-    return `<tr>
-      <td><span class="dot" style="background:${f.color}"></span>${f.label}</td>
-      <td>${m.subunits}</td>
-      <td>${m.instrument}</td>
-      <td>${m.dynamics}</td>
-      <td>${m.beat}</td>
-      <td>${m.rhythm}</td>
-    </tr>`;
-  }).join('');
+async function renderBand(decoded, lowHz, highHz) {
+  const sr = decoded.sampleRate;
+  const offCtx = new OfflineAudioContext(1, decoded.length, sr);
+  const src = offCtx.createBufferSource(); src.buffer = decoded;
+  const hi = offCtx.createBiquadFilter(); hi.type='highpass'; hi.frequency.value=lowHz; hi.Q.value=0.7;
+  const lo = offCtx.createBiquadFilter(); lo.type='lowpass';  lo.frequency.value=highHz; lo.Q.value=0.7;
+  src.connect(hi); hi.connect(lo); lo.connect(offCtx.destination); src.start();
+  const rendered = await offCtx.startRendering();
+  const data = rendered.getChannelData(0);
+  const fps=30, frameSize=Math.floor(sr/fps);
+  const frames=[]; let maxRMS=0;
+  for(let f=0;f<Math.floor(data.length/frameSize);f++){
+    let sum=0;
+    for(let i=f*frameSize;i<(f+1)*frameSize;i++) sum+=data[i]*data[i];
+    const rms=Math.sqrt(sum/frameSize); frames.push(rms); if(rms>maxRMS) maxRMS=rms;
+  }
+  return frames.map(v=>maxRMS>0?v/maxRMS:0);
+}
+
+function detectBeats(bassFrames) {
+  const win=15, thresh=1.4, cooldown=8;
+  const beats=new Array(bassFrames.length).fill(0);
+  let last=-cooldown;
+  for(let i=win;i<bassFrames.length;i++){
+    let avg=0; for(let j=i-win;j<i;j++) avg+=bassFrames[j]; avg/=win;
+    if(i-last>=cooldown && bassFrames[i]>avg*thresh && bassFrames[i]>0.15){
+      beats[i]=Math.min((bassFrames[i]-avg)/avg,1); last=i;
+    }
+  }
+  return beats;
+}
+
+// ---- Stage 3 audio player ----
+function toggleS3Audio() {
+  const audioEl = document.getElementById('audio-el');
+  if (!audioEl?.src) { showToast('Load a track in Stage 2 first'); return; }
+  if (audioEl.paused) {
+    if (!s3AudioCtx) {
+      s3AudioCtx = new AudioContext();
+      s3Analyser = s3AudioCtx.createAnalyser();
+      s3Analyser.fftSize = 2048;
+      s3Analyser.smoothingTimeConstant = 0.8;
+    }
+    if (!s3AudioConnected) {
+      const src = s3AudioCtx.createMediaElementSource(audioEl);
+      src.connect(s3Analyser);
+      s3Analyser.connect(s3AudioCtx.destination);
+      s3AudioConnected = true;
+    }
+    if (s3AudioCtx.state === 'suspended') s3AudioCtx.resume();
+    audioEl.play();
+    updateS3PlayBtn(true);
+  } else {
+    audioEl.pause();
+    updateS3PlayBtn(false);
+  }
+}
+function updateS3PlayBtn(playing) {
+  const btn = document.getElementById('s3-play-btn');
+  if (btn) btn.textContent = playing ? '⏸ Pause' : '▶ Play';
+}
+
+// ---- Stage 3 animation loops ----
+function s3GetBands() {
+  if (!s3Analyser) return { bass:0, mid:0, treble:0, presence:0, beat:0 };
+  const data = new Uint8Array(s3Analyser.frequencyBinCount);
+  s3Analyser.getByteFrequencyData(data);
+  const bins = s3Analyser.frequencyBinCount;
+  const avg = (s,e)=>{ let sum=0; for(let i=s;i<e;i++) sum+=data[i]; return sum/Math.max(1,e-s)/255; };
+  const b = appState.audioBoosts || {bass:1,mid:1,treble:1};
+  return {
+    bass:     Math.min(avg(0,Math.floor(bins*0.03))                          *b.bass,  1),
+    mid:      Math.min(avg(Math.floor(bins*0.03),Math.floor(bins*0.25))      *b.mid,   1),
+    treble:   Math.min(avg(Math.floor(bins*0.25),Math.floor(bins*0.65))      *b.treble,1),
+    presence: Math.min(avg(Math.floor(bins*0.06),Math.floor(bins*0.40))      *b.mid,   1),
+    beat:     0
+  };
+}
+
+function startS3Loops() {
+  // resize canvases
+  const pc = document.getElementById('s3-preview-canvas');
+  const sc = document.getElementById('spectrum-canvas');
+  if (pc) { pc.width = pc.clientWidth || 380; pc.height = 280; }
+  if (sc) { sc.width = sc.clientWidth || 380; sc.height = 90; }
+
+  const s=0.003, cos=Math.cos(s), sin=Math.sin(s);
+  const Ry=[cos,0,sin,0,1,0,-sin,0,cos];
+
+  function previewFrame() {
+    s3M = s3MulM3(Ry, s3M);
+    const bands = s3GetBands();
+    if (pc && window.drawDanceFrame) window.drawDanceFrame(pc, s3M, bands, appState.movements);
+    s3PreviewRAF = requestAnimationFrame(previewFrame);
+  }
+
+  function spectrumFrame() {
+    if (!sc) { s3SpectrumRAF = requestAnimationFrame(spectrumFrame); return; }
+    const ctx = sc.getContext('2d');
+    const W = sc.width, H = sc.height;
+    ctx.clearRect(0,0,W,H);
+    if (s3Analyser) {
+      const data = new Uint8Array(s3Analyser.frequencyBinCount);
+      s3Analyser.getByteFrequencyData(data);
+      const numBars = 64, maxBin = Math.floor(data.length*0.65);
+      const barW = (W - numBars) / numBars;
+      for (let i=0;i<numBars;i++){
+        const idx = Math.floor(i/numBars*maxBin);
+        const h = (data[idx]/255)*H*0.92;
+        const t = i/numBars;
+        const hue = t<0.15 ? 10 : t<0.5 ? 130 : t<0.75 ? 52 : 270;
+        ctx.fillStyle = `hsla(${hue},65%,52%,0.9)`;
+        ctx.fillRect(i*(barW+1), H-h, barW, h);
+      }
+    } else {
+      ctx.fillStyle = '#e8e0d5';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = '#b0a89c';
+      ctx.font = '11px Lora, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Press ▶ Play to see the spectrum', W/2, H/2+4);
+    }
+    s3SpectrumRAF = requestAnimationFrame(spectrumFrame);
+  }
+
+  // update time display
+  const audioEl = document.getElementById('audio-el');
+  if (audioEl) {
+    audioEl.addEventListener('timeupdate', () => {
+      const t = document.getElementById('s3-audio-time');
+      if (t) t.textContent = formatTime(audioEl.currentTime);
+    });
+    audioEl.addEventListener('ended', () => updateS3PlayBtn(false));
+  }
+
+  s3PreviewRAF  = requestAnimationFrame(previewFrame);
+  s3SpectrumRAF = requestAnimationFrame(spectrumFrame);
 }
 
 // ============================================================
@@ -1833,9 +1943,10 @@ function showStage(n) {
 
   // Stop dance if navigating away from it
   if (appState.currentStage === 'dance') stopDanceStage();
+  if (appState.currentStage === 3) stopStage3();
 
   // Move viewer to appropriate slot
-  const slotMap = { 0: null, 1: 'stage-1-viewer-slot', 2: null, 3: 'stage-3-viewer-slot', dance: 'stage-dance-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
+  const slotMap = { 0: null, 1: 'stage-1-viewer-slot', 2: null, 3: null, dance: 'stage-dance-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
   const slot = slotMap[n];
   if (slot) {
     moveViewerToSlot(slot);
@@ -1850,12 +1961,7 @@ function showStage(n) {
     document.getElementById('molstar-main-wrap').style.transform = '';
     document.getElementById('molstar-main-wrap').style.opacity = '';
     document.getElementById('molstar-main-wrap').style.filter = '';
-    // Build panel contents
-    ['fold2','fold3','fold5'].forEach(fold => {
-      document.getElementById('content-' + fold).innerHTML = buildFoldPanelContent(fold);
-      updateOrientDiagram(fold, appState.mappings[fold].x);
-    });
-    updateSummaryTable();
+    initStage3();
   } else if (n === 'dance') {
     stopSpin();
     document.getElementById('molstar-main-wrap').style.transform = '';
@@ -2417,14 +2523,38 @@ function showToast(msg) {
   };
 
   // ── Dance stage renderer (called each animation frame from main scope) ──
-  window.drawDanceFrame = function(canvas, M, bands) {
-    const {bass, mid, treble} = bands;
+  window.drawDanceFrame = function(canvas, M, bands, movements) {
+    const {bass=0, mid=0, treble=0, presence=0, beat=0} = bands;
+
+    // Compute per-axis scales from movement assignments
+    let s2=0, s3f=0, s5=0, wigAmp=0, scaleAll=1;
+    if (movements) {
+      const applyBand = (val, cfg) => {
+        if (!cfg || cfg.movement==='none' || !val) return;
+        const amt = (cfg.intensity/10) * val;
+        switch(cfg.movement){
+          case 'open2fold': s2   = Math.max(s2,   amt*0.85); break;
+          case 'open3fold': s3f  = Math.max(s3f,  amt*0.85); break;
+          case 'open5fold': s5   = Math.max(s5,   amt*0.85); break;
+          case 'wiggle':    wigAmp = Math.max(wigAmp, amt);  break;
+          case 'pulse':     scaleAll += amt*0.22;            break;
+        }
+      };
+      applyBand(bass,     movements.bass);
+      applyBand(mid,      movements.mid);
+      applyBand(treble,   movements.treble);
+      applyBand(presence, movements.presence);
+      applyBand(beat||0,  movements.beat);
+    } else {
+      s2=bass; s3f=mid; s5=treble;
+    }
+
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
 
-    const energy = Math.min(1, (bass*0.5 + mid*0.3 + treble*0.2));
-    const breathe = 1 + energy * 0.10;
+    const energy = Math.min(1, (s2*0.4 + s3f*0.35 + s5*0.25 + (scaleAll-1)*0.5));
+    const breathe = scaleAll;
 
     // Rotate + project vertices (with breathing scale)
     const rv = V.map(v => applyM(M, v));
@@ -2489,10 +2619,10 @@ function showToast(msg) {
       ctx.restore();
     }
 
-    // 2-fold rhombuses (bass) — expand corners away from edge midpoint
+    // 2-fold rhombuses (s2) — expand corners away from edge midpoint
     pts2.forEach(pt => {
-      if (bass < 0.015) return;
-      const sc = 1 + bass * 0.55;
+      if (s2 < 0.015) return;
+      const sc = 1 + s2 * 0.55;
       const c = pt.pos, cr = applyM(M, c);
       const [a, b] = E[pt.ei];
       const key = Math.min(a,b)+'-'+Math.max(a,b);
@@ -2501,35 +2631,35 @@ function showToast(msg) {
       const exp = [V[a],V[c1],V[b],V[c2]].map(v =>
         [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc]
       );
-      drawExpanded(exp, cr[2], '#E8624A', bass, 1.5);
+      drawExpanded(exp, cr[2], '#E8624A', s2, 1.5);
     });
 
-    // 3-fold triangles (mid) — expand corners away from face centre
+    // 3-fold triangles (s3f) — expand corners away from face centre
     pts3.forEach(pt => {
-      if (mid < 0.015) return;
-      const sc = 1 + mid * 0.55;
+      if (s3f < 0.015) return;
+      const sc = 1 + s3f * 0.55;
       const c = pt.pos, cr = applyM(M, c);
       const [a, b, cv] = F[pt.fi];
       const exp = [V[a],V[b],V[cv]].map(v =>
         [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc]
       );
-      drawExpanded(exp, cr[2], '#3DAA6A', mid, 1.5);
+      drawExpanded(exp, cr[2], '#3DAA6A', s3f, 1.5);
     });
 
-    // 5-fold pentagons (treble) — expand corners away from vertex
+    // 5-fold pentagons (s5) — expand corners away from vertex
     pts5.forEach(pt => {
-      if (treble < 0.015) return;
-      const sc = 1 + treble * 0.55;
+      if (s5 < 0.015) return;
+      const sc = 1 + s5 * 0.55;
       const c = pt.pos, cr = applyM(M, c);
       const exp = sortedNbr(pt.vi).map(ni => {
         const v = V[ni];
         return [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc];
       });
-      drawExpanded(exp, cr[2], '#9B72CF', treble, 1.5);
+      drawExpanded(exp, cr[2], '#9B72CF', s5, 1.5);
     });
 
     // Axis-centre dots pulsing with their band
-    [[pts2,'#E8624A',bass],[pts3,'#3DAA6A',mid],[pts5,'#9B72CF',treble]].forEach(([pts,col,amp])=>{
+    [[pts2,'#E8624A',s2],[pts3,'#3DAA6A',s3f],[pts5,'#9B72CF',s5]].forEach(([pts,col,amp])=>{
       pts.forEach(pt=>{
         const rz=applyM(M,pt.pos)[2], alpha=(rz<0?1:0.1)*Math.min(1,amp*2);
         if(alpha<0.01) return;
@@ -2546,7 +2676,8 @@ function showToast(msg) {
 let danceM       = [1,0,0,0,1,0,0,0,1];
 let danceAnimId  = null;
 let danceAudioCtx = null, danceAnalyser = null, danceAudioSource = null;
-let danceSmooth  = { bass: 0, mid: 0, treble: 0 };
+let danceSmooth  = { bass: 0, mid: 0, treble: 0, presence: 0, beat: 0 };
+let prevDanceBass = 0;
 let danceIsPlaying = false;
 
 function initDanceStage() {
@@ -2580,7 +2711,7 @@ function initDanceStage() {
 }
 
 function danceGetBands() {
-  if (!danceAnalyser) return { bass: 0, mid: 0, treble: 0 };
+  if (!danceAnalyser) return { bass: 0, mid: 0, treble: 0, presence: 0, beat: 0 };
   const bins = danceAnalyser.frequencyBinCount;
   const data = new Uint8Array(bins);
   danceAnalyser.getByteFrequencyData(data);
@@ -2589,20 +2720,34 @@ function danceGetBands() {
     for (let i = s; i < e; i++) sum += data[i];
     return sum / Math.max(1, e - s) / 255;
   };
-  const bassEnd   = Math.max(1, Math.floor(bins * 0.05));
-  const midEnd    = Math.max(bassEnd+1, Math.floor(bins * 0.30));
-  const trebleEnd = Math.max(midEnd+1, Math.floor(bins * 0.70));
+  const bassEnd     = Math.max(1,        Math.floor(bins * 0.05));
+  const midEnd      = Math.max(bassEnd+1, Math.floor(bins * 0.30));
+  const trebleEnd   = Math.max(midEnd+1,  Math.floor(bins * 0.70));
+  const presenceEnd = Math.max(Math.floor(bins*0.06)+1, Math.floor(bins * 0.42));
   const b = appState.audioBoosts;
+  const rawBass = avg(0, bassEnd);
+  const beat = Math.max(0, rawBass - prevDanceBass * 0.65) * 2.5;
+  prevDanceBass = rawBass;
   return {
-    bass:   Math.min(avg(0, bassEnd)        * b.bass,   1),
-    mid:    Math.min(avg(bassEnd, midEnd)   * b.mid,    1),
-    treble: Math.min(avg(midEnd, trebleEnd) * b.treble, 1)
+    bass:     Math.min(rawBass                              * b.bass,   1),
+    mid:      Math.min(avg(bassEnd, midEnd)                 * b.mid,    1),
+    treble:   Math.min(avg(midEnd, trebleEnd)               * b.treble, 1),
+    presence: Math.min(avg(Math.floor(bins*0.06), presenceEnd) * b.mid, 1),
+    beat:     Math.min(beat, 1)
   };
 }
 
 function danceLoop() {
-  // Slow auto-rotation
-  const s = 0.004;
+  // Slow auto-rotation (with spin boost from movement assignments)
+  let spinBoost = 0;
+  const mvs = appState.movements;
+  if (mvs) {
+    const bmap = { bass: danceSmooth.bass, mid: danceSmooth.mid, treble: danceSmooth.treble, presence: danceSmooth.presence, beat: danceSmooth.beat };
+    for (const [key, cfg] of Object.entries(mvs)) {
+      if (cfg && cfg.movement === 'spin') spinBoost += (cfg.intensity/10) * (bmap[key]||0) * 0.025;
+    }
+  }
+  const s = 0.004 + spinBoost;
   const cos = Math.cos(s), sin = Math.sin(s);
   const Ry = [cos,0,sin, 0,1,0, -sin,0,cos];
   const mulM3 = (A,B) => [
@@ -2618,11 +2763,13 @@ function danceLoop() {
   danceSmooth.bass   = Math.max(raw.bass,   danceSmooth.bass   * 0.82) * (1-alpha) + raw.bass   * alpha;
   danceSmooth.mid    = Math.max(raw.mid,    danceSmooth.mid    * 0.82) * (1-alpha) + raw.mid    * alpha;
   danceSmooth.treble = Math.max(raw.treble, danceSmooth.treble * 0.82) * (1-alpha) + raw.treble * alpha;
+  danceSmooth.presence = Math.max(raw.presence, danceSmooth.presence * 0.82) * (1-alpha) + raw.presence * alpha;
+  danceSmooth.beat     = Math.max(raw.beat,     danceSmooth.beat     * 0.70) * (1-alpha) + raw.beat     * alpha;
 
   // Draw animated icosahedron
   const canvas = document.getElementById('dance-canvas');
   if (canvas && typeof window.drawDanceFrame === 'function') {
-    window.drawDanceFrame(canvas, danceM, danceSmooth);
+    window.drawDanceFrame(canvas, danceM, danceSmooth, appState.movements);
   }
 
   // Update equaliser bars

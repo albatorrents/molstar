@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ViralBeat Studio</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.css">
+<script src="https://cdn.jsdelivr.net/npm/molstar@latest/build/viewer/molstar.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sage: #8FAF8F;
+  --sage-light: #C5D9C5;
+  --sage-dark: #6B8F6B;
+  --lavender: #C3B1D9;
+  --lavender-light: #DDD3EC;
+  --rose: #E8937F;
+  --rose-light: #F4C5BB;
+  --cream: #FAF6EF;
+  --cream-dark: #EDE5D5;
+  --sky: #A8C5DC;
+  --sky-light: #C8DDE8;
+  --text: #3D3428;
+  --text-mid: #6B5E50;
+  --text-light: #9A8B7A;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',serif;background:var(--cream);color:var(--text);min-height:100vh;}
+h1,h2,h3,h4{font-family:'Playfair Display',serif;}
+
+/* LAYOUT */
+#app-header{background:white;border-bottom:2px solid var(--cream-dark);padding:16px 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+.header-top{display:flex;align-items:center;gap:16px;margin-bottom:16px;}
+.app-title{font-size:1.6rem;font-weight:800;color:var(--sage-dark);font-family:'Playfair Display',serif;}
+.app-subtitle{font-size:0.85rem;color:var(--text-light);font-style:italic;}
+
+/* PROGRESS BAR */
+.progress-bar{display:flex;align-items:center;gap:0;}
+.step-wrap{display:flex;align-items:center;}
+.step-node{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .2s;border:2px solid transparent;position:relative;}
+.step-node.future{background:#e8e0d8;color:var(--text-light);cursor:default;}
+.step-node.active{background:var(--sage);color:white;border-color:var(--sage-dark);}
+.step-node.completed{background:var(--sage-dark);color:white;cursor:pointer;}
+.step-connector{height:2px;width:32px;background:#e0d8ce;}
+.step-connector.done{background:var(--sage-dark);}
+.step-label{font-size:0.65rem;color:var(--text-light);text-align:center;position:absolute;bottom:-18px;white-space:nowrap;left:50%;transform:translateX(-50%);}
+.step-node.active .step-label{color:var(--sage-dark);font-weight:700;}
+.step-node.completed .step-label{color:var(--sage-dark);}
+
+/* STAGE CONTAINERS */
+#main-content{padding:24px;max-width:1100px;margin:0 auto;}
+.stage{display:none;}
+.stage.active{display:block;}
+.stage-title{font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:6px;}
+.stage-desc{color:var(--text-mid);font-size:0.9rem;margin-bottom:20px;font-style:italic;}
+
+/* CARDS / PANELS */
+.card{background:white;border-radius:16px;padding:20px;box-shadow:0 2px 16px rgba(0,0,0,0.07);}
+.panel{background:white;border-radius:12px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.06);margin-bottom:12px;}
+
+/* HOST TABS */
+.host-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.host-tab{padding:8px 16px;border-radius:20px;border:2px solid var(--cream-dark);background:white;color:var(--text-mid);cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;transition:all .2s;}
+.host-tab.active{background:var(--sage);color:white;border-color:var(--sage-dark);}
+.host-tab:hover:not(.active){background:var(--sage-light);border-color:var(--sage);}
+
+/* VIRUS GRID */
+.virus-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
+.virus-card{background:white;border:2px solid var(--cream-dark);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;}
+.virus-card:hover{border-color:var(--sage);transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.1);}
+.virus-card.selected{border-color:var(--sage-dark);background:var(--sage-light);}
+.virus-name{font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:4px;}
+.virus-family{font-size:0.75rem;color:var(--text-light);font-style:italic;}
+.virus-pdb{font-size:0.7rem;color:var(--text-mid);margin-top:4px;font-family:monospace;}
+
+/* INFO PANEL */
+#info-panel{display:none;}
+#info-panel.visible{display:block;}
+.info-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.info-label{font-size:0.8rem;color:var(--text-light);width:140px;flex-shrink:0;}
+.info-value{font-weight:600;color:var(--text);}
+.copy-btn{padding:4px 10px;border-radius:8px;border:1px solid var(--sky);background:var(--sky-light);color:var(--text-mid);cursor:pointer;font-size:0.75rem;font-family:'Lora',serif;}
+.copy-btn:hover{background:var(--sky);}
+
+/* VIEWER SLOT */
+.viewer-slot{border-radius:12px;overflow:hidden;position:relative;background:#1a1a2e;}
+#molstar-main-wrap{width:100%;height:100%;position:relative;}
+#molstar-main-wrap.synth-anim{animation:synthHue 3s linear infinite;}
+@keyframes synthHue{0%{filter:hue-rotate(0deg) saturate(150%);}100%{filter:hue-rotate(360deg) saturate(150%);}}
+
+/* AXIS OVERLAY */
+.axis-svg-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;}
+
+/* AXIS TOGGLE BUTTONS */
+.axis-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.axis-btn{padding:8px 14px;border-radius:20px;border:2px solid;background:white;cursor:pointer;font-family:'Lora',serif;font-size:0.82rem;font-weight:600;transition:all .2s;}
+.axis-btn.fold2{border-color:var(--rose);color:var(--rose);}
+.axis-btn.fold3{border-color:var(--sage);color:var(--sage-dark);}
+.axis-btn.fold5{border-color:var(--lavender);color:#7B5EA7;}
+.axis-btn.active.fold2{background:var(--rose);color:white;}
+.axis-btn.active.fold3{background:var(--sage);color:white;}
+.axis-btn.active.fold5{background:var(--lavender);color:white;}
+
+/* BUTTONS */
+.btn{padding:12px 24px;border-radius:10px;border:none;cursor:pointer;font-family:'Lora',serif;font-size:0.9rem;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary{background:var(--sage-dark);color:white;}
+.btn-primary:hover{background:var(--sage);transform:translateY(-1px);}
+.btn-secondary{background:var(--cream-dark);color:var(--text-mid);}
+.btn-secondary:hover{background:var(--sage-light);}
+.btn-rose{background:var(--rose);color:white;}
+.btn-rose:hover{background:#d4735f;}
+.btn-sky{background:var(--sky);color:var(--text);}
+.btn-sky:hover{background:var(--sky-light);}
+.btn-lavender{background:var(--lavender);color:white;}
+.btn-lavender:hover{background:#a892c4;}
+
+/* STAGE 2 */
+.youtube-frame{width:100%;height:500px;border-radius:12px;border:none;}
+.waveform-placeholder{display:flex;align-items:flex-end;gap:4px;height:60px;padding:8px;background:var(--cream-dark);border-radius:8px;}
+.wave-bar{width:8px;border-radius:4px;background:var(--sage);animation:wavePulse 1s ease-in-out infinite;}
+@keyframes wavePulse{0%,100%{transform:scaleY(0.3);opacity:.5;}50%{transform:scaleY(1);opacity:1;}}
+.audio-controls{display:flex;align-items:center;gap:12px;padding:12px;background:var(--cream-dark);border-radius:10px;}
+.scrubber{flex:1;accent-color:var(--sage-dark);}
+.file-input-wrap{position:relative;display:inline-block;}
+.file-input-wrap input[type=file]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
+.file-input-label{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--lavender-light);border:2px dashed var(--lavender);border-radius:10px;cursor:pointer;color:var(--text-mid);font-family:'Lora',serif;font-size:0.875rem;}
+
+/* STAGE 3 */
+.fold-panel{border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.fold-panel-header{padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:0.95rem;}
+.fold-panel-header .arrow{transition:transform .2s;}
+.fold-panel-header.open .arrow{transform:rotate(180deg);}
+.fold-panel-body{padding:16px 18px;display:none;background:white;}
+.fold-panel-body.open{display:block;}
+.fold2-panel .fold-panel-header{background:var(--rose-light);color:#b05540;border-left:4px solid var(--rose);}
+.fold3-panel .fold-panel-header{background:var(--sage-light);color:var(--sage-dark);border-left:4px solid var(--sage);}
+.fold5-panel .fold-panel-header{background:var(--lavender-light);color:#7B5EA7;border-left:4px solid var(--lavender);}
+.fold2-panel{border:2px solid var(--rose);}
+.fold3-panel{border:2px solid var(--sage);}
+.fold5-panel{border:2px solid var(--lavender);}
+.mapping-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:700px){.mapping-row{grid-template-columns:1fr;}}
+.mapping-label{font-size:0.8rem;color:var(--text-light);margin-bottom:4px;}
+.mapping-select,.mapping-input{width:100%;padding:8px 10px;border:1.5px solid var(--cream-dark);border-radius:8px;font-family:'Lora',serif;font-size:0.875rem;color:var(--text);background:white;outline:none;}
+.mapping-select:focus,.mapping-input:focus{border-color:var(--sage);}
+.slider-wrap{display:flex;align-items:center;gap:10px;}
+.slider-wrap input[type=range]{flex:1;accent-color:var(--sage-dark);}
+.slider-val{min-width:40px;text-align:right;font-size:0.85rem;color:var(--text-mid);}
+.orient-section{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;}
+.orient-sliders{flex:1;}
+.orient-diagram{flex-shrink:0;}
+.justify-area{width:100%;min-height:80px;padding:10px;border:1.5px solid var(--cream-dark);border-radius:8px;font-family:'Lora',serif;font-size:0.875rem;color:var(--text);resize:vertical;outline:none;}
+.justify-area:focus{border-color:var(--sage);}
+.summary-table{width:100%;border-collapse:collapse;margin-top:16px;}
+.summary-table th{background:var(--cream-dark);padding:10px;text-align:left;font-size:0.8rem;color:var(--text-mid);font-weight:600;}
+.summary-table td{padding:10px;font-size:0.85rem;border-bottom:1px solid var(--cream-dark);}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:6px;}
+
+/* STAGE 4 - CARD */
+.stage4-layout{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;}
+@media(max-width:700px){.stage4-layout{grid-template-columns:1fr;}}
+.trading-card{width:360px;aspect-ratio:4/5;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.18);overflow:hidden;background:white;display:flex;flex-direction:column;position:relative;}
+.card-viewer-section{height:220px;background:#1a1a2e;position:relative;flex-shrink:0;}
+#molstar-card-wrap{width:100%;height:100%;}
+.capture-btn{position:absolute;bottom:8px;right:8px;padding:6px 12px;background:rgba(255,255,255,0.9);border-radius:8px;border:none;cursor:pointer;font-family:'Lora',serif;font-size:0.75rem;font-weight:600;color:var(--text);}
+.card-middle{padding:12px 14px;flex:1;}
+.card-input{width:100%;border:none;border-bottom:1.5px solid var(--cream-dark);padding:6px 2px;font-family:'Lora',serif;font-size:0.85rem;color:var(--text);outline:none;background:transparent;margin-bottom:10px;}
+.card-input:focus{border-bottom-color:var(--sage);}
+.card-input-label{font-size:0.7rem;color:var(--text-light);margin-bottom:2px;}
+.card-bottom{background:var(--cream);padding:12px 14px;border-top:1px solid var(--cream-dark);}
+.card-fold-row{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-mid);margin-bottom:6px;}
+.card-controls{padding:8px 0;}
+.ctrl-group{margin-bottom:14px;}
+.ctrl-label{font-size:0.8rem;color:var(--text-light);margin-bottom:4px;display:block;}
+.ctrl-input{width:100%;padding:9px 12px;border:1.5px solid var(--cream-dark);border-radius:8px;font-family:'Lora',serif;font-size:0.875rem;color:var(--text);outline:none;}
+.ctrl-input:focus{border-color:var(--sage);}
+
+/* STAGE 5 */
+.success-card{background:linear-gradient(135deg,var(--sage-light),var(--lavender-light));border-radius:16px;padding:24px;margin-bottom:20px;}
+.export-btns{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--sage-dark);color:white;padding:12px 20px;border-radius:10px;font-size:0.875rem;font-family:'Lora',serif;z-index:9999;opacity:0;pointer-events:none;transition:opacity .3s;box-shadow:0 4px 20px rgba(0,0,0,0.2);}
+#toast.show{opacity:1;}
+
+/* RESUME BANNER */
+#resume-banner{background:linear-gradient(135deg,var(--sky-light),var(--lavender-light));border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none;align-items:center;gap:16px;}
+#resume-banner.visible{display:flex;}
+
+/* PRESENTATION MODE */
+#pres-overlay{display:none;position:fixed;inset:0;background:#1a1a2e;z-index:10000;flex-direction:column;}
+#pres-overlay.visible{display:flex;}
+.pres-toolbar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(255,255,255,0.05);}
+.pres-body{display:flex;flex:1;overflow:hidden;}
+#pres-viewer-slot{flex:0 0 60%;position:relative;background:#111;}
+.pres-info{flex:1;padding:24px;color:white;overflow-y:auto;}
+.pres-info h2{font-size:1.4rem;margin-bottom:16px;color:var(--sage-light);}
+.pres-table{width:100%;border-collapse:collapse;}
+.pres-table th{color:var(--text-light);font-size:0.75rem;text-align:left;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.1);}
+.pres-table td{color:white;font-size:0.85rem;padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.pres-btn{padding:8px 16px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:white;cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;}
+.pres-btn.active-btn{background:var(--sage);border-color:var(--sage-dark);}
+.pres-exit-btn{padding:8px 16px;border-radius:8px;border:none;background:var(--rose);color:white;cursor:pointer;font-family:'Lora',serif;font-size:0.85rem;margin-left:auto;}
+
+/* READONLY VIEW */
+#readonly-view{display:none;max-width:800px;margin:40px auto;padding:24px;}
+#readonly-view.visible{display:block;}
+
+/* Two-col layout helpers */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+.stage1-layout{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;}
+@media(max-width:900px){.stage1-layout{grid-template-columns:1fr;}}
+
+/* Misc */
+.section-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:10px;}
+.mb-4{margin-bottom:4px;}
+.mb-8{margin-bottom:8px;}
+.mb-12{margin-bottom:12px;}
+.mb-16{margin-bottom:16px;}
+.mb-20{margin-bottom:20px;}
+.text-light{color:var(--text-light);}
+.text-sm{font-size:0.85rem;}
+.flex{display:flex;}
+.gap-8{gap:8px;}
+.gap-12{gap:12px;}
+.items-center{align-items:center;}
+.flex-wrap{flex-wrap:wrap;}
+hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- PRESENTATION OVERLAY -->
+<div id="pres-overlay">
+  <div class="pres-toolbar">
+    <span style="color:white;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;">ViralBeat Studio — Presentation</span>
+    <button class="pres-btn" id="pres-loop-btn" onclick="togglePresLoop()">▶ Loop Axes</button>
+    <button class="pres-exit-btn" onclick="exitPresentation()">✕ Exit</button>
+  </div>
+  <div class="pres-body">
+    <div id="pres-viewer-slot"></div>
+    <div class="pres-info">
+      <h2 id="pres-virus-name"></h2>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:8px;" id="pres-student-name"></p>
+      <div id="pres-virus-info" style="margin-bottom:20px;font-size:0.9rem;color:rgba(255,255,255,0.85);"></div>
+      <h3 style="color:var(--sage-light);font-size:1rem;margin-bottom:10px;">Symmetry Mappings</h3>
+      <table class="pres-table">
+        <thead><tr><th>Fold</th><th>Instrument</th><th>Dynamics</th><th>Beat</th><th>Rhythm</th></tr></thead>
+        <tbody id="pres-mapping-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- READONLY VIEW -->
+<div id="readonly-view">
+  <h1 style="font-size:2rem;margin-bottom:8px;">ViralBeat Studio</h1>
+  <p style="color:var(--text-light);font-style:italic;margin-bottom:20px;">Shared Session (Read-Only)</p>
+  <div id="readonly-content"></div>
+  <div style="margin-top:24px;">
+    <button class="btn btn-primary" onclick="window.location.href=window.location.pathname">Start Your Own</button>
+  </div>
+</div>
+
+<!-- HIDDEN PERSISTENT VIEWER CONTAINER (moved into slots by JS) -->
+<div id="molstar-main-wrap" style="width:100%;height:100%;position:relative;display:none;">
+  <div id="molstar-main" style="width:100%;height:100%;"></div>
+  <svg id="axis-svg" class="axis-svg-overlay"></svg>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-root" style="display:none;">
+
+<div id="app-header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">ViralBeat Studio</div>
+      <div class="app-subtitle">Explore viral capsid symmetry through music synchronization</div>
+    </div>
+  </div>
+  <div class="progress-bar" id="progress-bar"></div>
+</div>
+
+<div id="main-content">
+
+<div id="resume-banner">
+  <div style="flex:1;">
+    <strong>Resume your session?</strong>
+    <div class="text-sm text-light">You have a saved session from a previous visit.</div>
+  </div>
+  <button class="btn btn-primary" onclick="resumeSession()" style="padding:8px 16px;font-size:0.85rem;">Resume Session</button>
+  <button class="btn btn-secondary" onclick="startFresh()" style="padding:8px 16px;font-size:0.85rem;">Start Fresh</button>
+</div>
+
+<!-- =================== STAGE 1 =================== -->
+<div id="stage-1" class="stage">
+  <h2 class="stage-title">Stage 1 — Capsid Selection</h2>
+  <p class="stage-desc">Choose a virus to explore its icosahedral capsid symmetry.</p>
+
+  <div class="host-tabs" id="host-tabs"></div>
+
+  <div class="stage1-layout">
+    <div>
+      <div class="virus-grid" id="virus-grid"></div>
+
+      <div id="info-panel" class="panel">
+        <div class="section-title mb-8" id="info-virus-name"></div>
+        <div class="info-row">
+          <span class="info-label">PDB ID</span>
+          <span class="info-value" id="info-pdb"></span>
+          <button class="copy-btn" onclick="copyPdb()">Copy</button>
+        </div>
+        <div class="info-row">
+          <span class="info-label">T Number</span>
+          <span class="info-value" id="info-t"></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Pentamers</span>
+          <span class="info-value">12</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Hexamers</span>
+          <span class="info-value" id="info-hexamers"></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Total Subunits</span>
+          <span class="info-value" id="info-subunits"></span>
+        </div>
+      </div>
+
+      <div class="axis-btn-row">
+        <button class="axis-btn fold2" id="btn-fold2" onclick="toggleAxis('fold2')">2-Fold Axes</button>
+        <button class="axis-btn fold3" id="btn-fold3" onclick="toggleAxis('fold3')">3-Fold Axes</button>
+        <button class="axis-btn fold5" id="btn-fold5" onclick="toggleAxis('fold5')">5-Fold Axes</button>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" id="confirm-capsid-btn" onclick="goToStage(2)" disabled>Confirm Capsid →</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="viewer-slot" id="stage-1-viewer-slot" style="height:380px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== STAGE 2 =================== -->
+<div id="stage-2" class="stage">
+  <h2 class="stage-title">Stage 2 — Music Import</h2>
+  <p class="stage-desc">Find a track online, then upload it to synchronize with your capsid.</p>
+
+  <div class="two-col mb-20">
+    <div>
+      <div class="panel mb-12">
+        <div class="section-title mb-8">Find Music Online</div>
+        <p class="text-sm text-light mb-12">Convert a YouTube URL to MP3, then upload it below.</p>
+        <div id="iframe-container" style="position:relative;">
+          <iframe class="youtube-frame" src="https://mp3cow.net/" title="Music finder" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" onerror="showIframeFallback()" onload="checkIframeLoad(this)"></iframe>
+          <div id="iframe-fallback" style="display:none;background:var(--cream-dark);border-radius:10px;padding:28px 20px;text-align:center;border:2px dashed var(--text-light);">
+            <div style="font-size:1.8rem;margin-bottom:8px;">🎵</div>
+            <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:8px;color:var(--text);">Open MP3 Converter</div>
+            <p style="font-size:0.85rem;color:var(--text-light);margin-bottom:16px;">The converter can't load in an iframe (site policy). Open it in a new tab, download your MP3, then upload it here.</p>
+            <a href="https://mp3cow.net/" target="_blank" rel="noopener" style="display:inline-block;background:var(--sage);color:white;padding:10px 22px;border-radius:20px;font-family:'Lora',serif;font-size:0.9rem;text-decoration:none;font-weight:600;">Open mp3cow.net ↗</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel mb-12">
+        <div class="section-title mb-8">Upload Your Track</div>
+        <div class="file-input-wrap mb-12">
+          <input type="file" accept="audio/mp3,audio/mpeg,audio/*" onchange="handleAudioFile(this)">
+          <div class="file-input-label">🎵 Choose Audio File (MP3)</div>
+        </div>
+
+        <div id="waveform-placeholder" class="waveform-placeholder mb-12">
+          <div class="wave-bar" style="height:30%;animation-delay:0s;"></div>
+          <div class="wave-bar" style="height:60%;animation-delay:.1s;"></div>
+          <div class="wave-bar" style="height:80%;animation-delay:.2s;"></div>
+          <div class="wave-bar" style="height:50%;animation-delay:.3s;"></div>
+          <div class="wave-bar" style="height:90%;animation-delay:.4s;"></div>
+          <div class="wave-bar" style="height:70%;animation-delay:.5s;"></div>
+          <div class="wave-bar" style="height:40%;animation-delay:.6s;"></div>
+          <div class="wave-bar" style="height:85%;animation-delay:.7s;"></div>
+          <div class="wave-bar" style="height:55%;animation-delay:.8s;"></div>
+          <div class="wave-bar" style="height:65%;animation-delay:.9s;"></div>
+        </div>
+
+        <div id="audio-player-section" style="display:none;">
+          <div class="mb-8" style="font-weight:600;color:var(--text);" id="track-name-display"></div>
+          <audio id="audio-el" style="display:none;"></audio>
+          <div class="audio-controls">
+            <button class="btn btn-secondary" id="play-pause-btn" onclick="togglePlayPause()" style="padding:8px 14px;">▶</button>
+            <input type="range" class="scrubber" id="audio-scrubber" min="0" max="100" value="0" oninput="seekAudio(this.value)">
+            <span id="audio-time" style="font-size:0.8rem;color:var(--text-mid);white-space:nowrap;">0:00 / 0:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mb-12">
+        <div class="section-title mb-8">Capsid Preview</div>
+        <div class="viewer-slot" id="stage-2-viewer-slot" style="height:180px;"></div>
+        <p class="text-sm text-light" style="margin-top:8px;">Your capsid is spinning — visualizing icosahedral symmetry.</p>
+      </div>
+
+      <button class="btn btn-primary" id="use-track-btn" onclick="goToStage(3)" disabled>Use This Track →</button>
+      <p class="text-sm text-light" style="margin-top:8px;" id="track-status-msg">Upload an audio file to continue, or click below to skip.</p>
+      <button class="btn btn-secondary" style="margin-top:8px;" onclick="skipAudio()">Skip Audio →</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== STAGE 3 =================== -->
+<div id="stage-3" class="stage">
+  <h2 class="stage-title">Stage 3 — Symmetry-Music Mapping</h2>
+  <p class="stage-desc">Map each icosahedral symmetry axis to musical parameters.</p>
+
+  <div class="two-col">
+    <div>
+      <!-- 2-Fold Panel -->
+      <div class="fold-panel fold2-panel" id="panel-fold2">
+        <div class="fold-panel-header" onclick="toggleFoldPanel('fold2')">
+          <span>2-Fold Axes <span style="font-weight:400;font-size:0.8rem;opacity:.7;">(30 axes)</span></span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="fold-panel-body" id="body-fold2">
+          <div id="content-fold2"></div>
+        </div>
+      </div>
+
+      <!-- 3-Fold Panel -->
+      <div class="fold-panel fold3-panel" id="panel-fold3">
+        <div class="fold-panel-header" onclick="toggleFoldPanel('fold3')">
+          <span>3-Fold Axes <span style="font-weight:400;font-size:0.8rem;opacity:.7;">(20 axes)</span></span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="fold-panel-body" id="body-fold3">
+          <div id="content-fold3"></div>
+        </div>
+      </div>
+
+      <!-- 5-Fold Panel -->
+      <div class="fold-panel fold5-panel" id="panel-fold5">
+        <div class="fold-panel-header" onclick="toggleFoldPanel('fold5')">
+          <span>5-Fold Axes <span style="font-weight:400;font-size:0.8rem;opacity:.7;">(12 axes)</span></span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="fold-panel-body" id="body-fold5">
+          <div id="content-fold5"></div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div class="section-title mb-8">Mapping Summary</div>
+      <div style="overflow-x:auto;">
+        <table class="summary-table" id="summary-table">
+          <thead>
+            <tr><th>Fold</th><th>Subunits</th><th>Instrument</th><th>Dynamics</th><th>Beat</th><th>Rhythm</th></tr>
+          </thead>
+          <tbody id="summary-body"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="goToStage(4)">Finalize Mapping →</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="viewer-slot" id="stage-3-viewer-slot" style="height:420px;"></div>
+      <div class="axis-btn-row" style="margin-top:10px;">
+        <button class="axis-btn fold2" id="s3-btn-fold2" onclick="toggleAxis('fold2')">2-Fold</button>
+        <button class="axis-btn fold3" id="s3-btn-fold3" onclick="toggleAxis('fold3')">3-Fold</button>
+        <button class="axis-btn fold5" id="s3-btn-fold5" onclick="toggleAxis('fold5')">5-Fold</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== STAGE 4 =================== -->
+<div id="stage-4" class="stage">
+  <h2 class="stage-title">Stage 4 — Capsid Card Creator</h2>
+  <p class="stage-desc">Design your scientific trading card.</p>
+
+  <div class="stage4-layout">
+    <div>
+      <div class="trading-card" id="trading-card">
+        <div class="card-viewer-section">
+          <div id="molstar-card-slot" style="width:100%;height:100%;"></div>
+          <button class="capture-btn" onclick="captureCard()">📸 Capture View</button>
+        </div>
+        <div class="card-middle">
+          <div style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:10px;" id="card-virus-title"></div>
+          <div class="card-input-label">T Symmetry</div>
+          <input class="card-input" id="card-t" placeholder="T = ?" oninput="updateCard('tSymmetry',this.value)">
+          <div class="card-input-label">Habitat / Host</div>
+          <input class="card-input" id="card-habitat" placeholder="Where does this virus live?" oninput="updateCard('habitat',this.value)">
+          <div class="card-input-label">Disease / Role</div>
+          <input class="card-input" id="card-disease" placeholder="What disease or biological role?" oninput="updateCard('disease',this.value)">
+          <div class="card-input-label">Fun Fact</div>
+          <input class="card-input" id="card-funfact" placeholder="Did you know...?" oninput="updateCard('funFact',this.value)">
+        </div>
+        <div class="card-bottom">
+          <div id="card-folds-display"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" onclick="goToStage(5)">Save Card →</button>
+      </div>
+    </div>
+
+    <div class="card-controls">
+      <div class="panel">
+        <div class="section-title mb-12">Card Information</div>
+        <p class="text-sm text-light mb-16">Fill in the fields directly on the card (left), or edit here:</p>
+
+        <div class="ctrl-group">
+          <label class="ctrl-label">T Symmetry Number</label>
+          <input class="ctrl-input" id="ctrl-t" oninput="syncCardField('tSymmetry','card-t',this.value)">
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Habitat / Host</label>
+          <input class="ctrl-input" id="ctrl-habitat" oninput="syncCardField('habitat','card-habitat',this.value)">
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Disease / Biological Role</label>
+          <input class="ctrl-input" id="ctrl-disease" oninput="syncCardField('disease','card-disease',this.value)">
+        </div>
+        <div class="ctrl-group">
+          <label class="ctrl-label">Fun Fact</label>
+          <input class="ctrl-input" id="ctrl-funfact" oninput="syncCardField('funFact','card-funfact',this.value)">
+        </div>
+
+        <hr class="divider">
+        <div class="section-title mb-8">Mapping Summary</div>
+        <div id="card-mapping-preview"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== STAGE 5 =================== -->
+<div id="stage-5" class="stage">
+  <h2 class="stage-title">Stage 5 — Save & Share</h2>
+  <p class="stage-desc">Export your session or present to the class.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="panel mb-16">
+        <div class="section-title mb-8">Your Name</div>
+        <input class="ctrl-input" id="student-name-input" placeholder="Enter your name..." oninput="updateStudentName(this.value)">
+      </div>
+
+      <div class="success-card mb-16" id="success-summary">
+        <h3 style="font-size:1.1rem;margin-bottom:8px;" id="summary-virus-title"></h3>
+        <p class="text-sm" id="summary-student"></p>
+        <hr class="divider" style="border-color:rgba(0,0,0,0.1);">
+        <div id="summary-mappings-overview"></div>
+      </div>
+
+      <div class="section-title mb-12">Export Options</div>
+      <div class="export-btns">
+        <button class="btn btn-primary" onclick="downloadJSON()">⬇ Download JSON</button>
+        <button class="btn btn-sky" onclick="downloadCardPNG()">🖼 Download Card PNG</button>
+        <button class="btn btn-lavender" onclick="copyShareLink()">🔗 Copy Share Link</button>
+      </div>
+
+      <hr class="divider">
+      <button class="btn btn-rose" onclick="enterPresentation()" style="margin-top:8px;">🎤 Present to Class</button>
+    </div>
+
+    <div>
+      <div class="viewer-slot" id="stage-5-viewer-slot" style="height:300px;"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main-content -->
+</div><!-- end app-root -->
+
+<script>
+// ============================================================
+// VIRUS LIBRARY
+// ============================================================
+const virusLibrary = [
+  { name: "Adeno-Associated Virus 2", pdb: "1LP3", t: 1, family: "Parvoviridae", host: "human" },
+  { name: "Human Papillomavirus 16", pdb: "3J6R", t: 7, family: "Papillomaviridae", host: "human" },
+  { name: "Rhinovirus A2", pdb: "1AYM", t: 1, family: "Picornaviridae", host: "human" },
+  { name: "Hepatitis B Core", pdb: "2G33", t: 4, family: "Hepadnaviridae", host: "human" },
+  { name: "Poliovirus 1", pdb: "2PLV", t: 1, family: "Picornaviridae", host: "human" },
+  { name: "Feline Panleukopenia Virus", pdb: "1C8D", t: 1, family: "Parvoviridae", host: "animal" },
+  { name: "Canine Parvovirus", pdb: "2CAS", t: 1, family: "Parvoviridae", host: "animal" },
+  { name: "Bluetongue Virus", pdb: "2BTV", t: 13, family: "Reoviridae", host: "animal" },
+  { name: "Cowpea Mosaic Virus", pdb: "1NY7", t: 1, family: "Comoviridae", host: "plant" },
+  { name: "Tobacco Mosaic Virus Disk", pdb: "2TMV", t: 1, family: "Virgaviridae", host: "plant" },
+  { name: "Tomato Bushy Stunt Virus", pdb: "2TBV", t: 3, family: "Tombusviridae", host: "plant" },
+  { name: "Baculovirus P35", pdb: "1P35", t: 1, family: "Baculoviridae", host: "insect" },
+  { name: "MS2 Bacteriophage", pdb: "1AQ3", t: 3, family: "Leviviridae", host: "bacteria" },
+  { name: "HK97 Bacteriophage", pdb: "1FH6", t: 7, family: "Siphoviridae", host: "bacteria" },
+  { name: "Yeast L-A Virus", pdb: "1M1C", t: 1, family: "Totiviridae", host: "fungi" }
+];
+
+// ============================================================
+// ICOSAHEDRON GEOMETRY
+// ============================================================
+const phi = (1 + Math.sqrt(5)) / 2;
+const ICO_VERTICES = [
+  [0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],
+  [1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],
+  [phi,0,1],[phi,0,-1],[-phi,0,1],[-phi,0,-1]
+];
+const ICO_FACES = [
+  [0,1,8],[0,8,4],[0,4,5],[0,5,10],[0,10,1],
+  [1,6,8],[8,6,9],[8,9,4],[4,9,2],[4,2,5],
+  [5,2,11],[5,11,10],[10,11,7],[10,7,1],[1,7,6],
+  [3,9,6],[3,6,7],[3,7,11],[3,11,2],[3,2,9]
+];
+
+function normalize(v) {
+  const len = Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+  return [v[0]/len, v[1]/len, v[2]/len];
+}
+
+function get5FoldAxes() {
+  return ICO_VERTICES.map(v => normalize(v));
+}
+
+function get3FoldAxes() {
+  return ICO_FACES.map(f => {
+    const a = ICO_VERTICES[f[0]], b = ICO_VERTICES[f[1]], c = ICO_VERTICES[f[2]];
+    return normalize([(a[0]+b[0]+c[0])/3, (a[1]+b[1]+c[1])/3, (a[2]+b[2]+c[2])/3]);
+  });
+}
+
+function get2FoldAxes() {
+  const edges = new Map();
+  for (const face of ICO_FACES) {
+    const pairs = [[face[0],face[1]],[face[1],face[2]],[face[0],face[2]]];
+    for (const [a,b] of pairs) {
+      const key = Math.min(a,b)+','+Math.max(a,b);
+      if (!edges.has(key)) edges.set(key, [a,b]);
+    }
+  }
+  return Array.from(edges.values()).map(([a,b]) => {
+    const va = ICO_VERTICES[a], vb = ICO_VERTICES[b];
+    return normalize([(va[0]+vb[0])/2, (va[1]+vb[1])/2, (va[2]+vb[2])/2]);
+  });
+}
+
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+const appState = {
+  currentStage: 1,
+  completedStages: new Set(),
+  selectedVirus: null,
+  activeHost: 'human',
+  axisToggles: { fold2: false, fold3: false, fold5: false },
+  audioFile: null,
+  trackName: '',
+  audioDuration: 0,
+  mappings: {
+    fold2: { subunits: 30, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Piano', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' },
+    fold3: { subunits: 20, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Strings', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' },
+    fold5: { subunits: 12, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Brass', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' }
+  },
+  card: { tSymmetry: '', habitat: '', disease: '', funFact: '', snapshot: '' },
+  studentName: ''
+};
+
+// ============================================================
+// MOLSTAR VIEWER MANAGEMENT
+// ============================================================
+let mainViewer = null;
+let cardViewer = null;
+let cardViewerInitialized = false;
+let molstarReady = false;
+
+async function initMolstar(containerId) {
+  const viewer = await molstar.Viewer.create(containerId, {
+    layoutIsExpanded: false,
+    layoutShowControls: false,
+    layoutShowRemoteState: false,
+    layoutShowSequence: false,
+    layoutShowLog: false,
+    layoutShowLeftPanel: false,
+    viewportShowExpand: false,
+    viewportShowSelectionMode: false,
+    viewportShowAnimation: false,
+    collapseRightPanel: true
+  });
+  return viewer;
+}
+
+async function loadStructureInMolstar(pdbId) {
+  if (!mainViewer) return;
+  try {
+    await mainViewer.loadStructureFromUrl(
+      `https://files.rcsb.org/download/${pdbId}.cif`,
+      'mmcif'
+    );
+  } catch(e) {
+    console.warn('Structure load failed:', e);
+  }
+}
+
+function startSpin() {
+  try {
+    mainViewer?.plugin?.canvas3d?.setProps({
+      trackball: { animate: { name: 'spin', params: { speed: 1 } } }
+    });
+  } catch(e) {}
+}
+
+function stopSpin() {
+  try {
+    mainViewer?.plugin?.canvas3d?.setProps({
+      trackball: { animate: { name: 'off', params: {} } }
+    });
+  } catch(e) {}
+}
+
+// Move viewer to a stage slot
+function moveViewerToSlot(slotId) {
+  const wrap = document.getElementById('molstar-main-wrap');
+  const slot = document.getElementById(slotId);
+  if (slot && wrap) {
+    wrap.style.display = 'block';
+    slot.appendChild(wrap);
+    // Force resize
+    setTimeout(() => {
+      try { mainViewer?.plugin?.canvas3d?.requestCameraReset(); } catch(e) {}
+      updateAxisOverlay();
+    }, 150);
+  }
+}
+
+// ============================================================
+// AXIS VISUALIZATION
+// ============================================================
+function projectAxis(ax, ay, az, w, h) {
+  const scale = Math.min(w, h) * 0.38;
+  const cx = w / 2, cy = h / 2;
+  const px = cx + ax * scale;
+  const py = cy - ay * scale;
+  return [px, py];
+}
+
+function updateAxisOverlay() {
+  const svg = document.getElementById('axis-svg');
+  if (!svg) return;
+  const wrap = document.getElementById('molstar-main-wrap');
+  const w = wrap.offsetWidth || 400;
+  const h = wrap.offsetHeight || 300;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.innerHTML = '';
+
+  const colors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
+  const axesFns = {
+    fold2: get2FoldAxes,
+    fold3: get3FoldAxes,
+    fold5: get5FoldAxes
+  };
+
+  for (const [fold, enabled] of Object.entries(appState.axisToggles)) {
+    if (!enabled) continue;
+    const axes = axesFns[fold]();
+    const color = colors[fold];
+    for (const axis of axes) {
+      const [px, py] = projectAxis(axis[0], axis[1], axis[2], w, h);
+      const [nx, ny] = projectAxis(-axis[0], -axis[1], -axis[2], w, h);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', nx); line.setAttribute('y1', ny);
+      line.setAttribute('x2', px); line.setAttribute('y2', py);
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('opacity', '0.7');
+      svg.appendChild(line);
+      // Dot at axis endpoint
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', px); dot.setAttribute('cy', py);
+      dot.setAttribute('r', '3');
+      dot.setAttribute('fill', color);
+      dot.setAttribute('opacity', '0.9');
+      svg.appendChild(dot);
+    }
+  }
+}
+
+function toggleAxis(fold) {
+  appState.axisToggles[fold] = !appState.axisToggles[fold];
+  updateAxisBtns();
+  updateAxisOverlay();
+  saveSession();
+}
+
+function updateAxisBtns() {
+  ['fold2','fold3','fold5'].forEach(fold => {
+    const on = appState.axisToggles[fold];
+    document.getElementById('btn-' + fold)?.classList.toggle('active', on);
+    document.getElementById('s3-btn-' + fold)?.classList.toggle('active', on);
+  });
+}
+
+// ============================================================
+// STAGE 1 — CAPSID SELECTION
+// ============================================================
+function renderHostTabs() {
+  const hosts = ['human','animal','plant','insect','bacteria','fungi'];
+  const labels = { human:'Human', animal:'Animal', plant:'Plant', insect:'Insect', bacteria:'Bacteria', fungi:'Fungi' };
+  const el = document.getElementById('host-tabs');
+  el.innerHTML = hosts.map(h =>
+    `<button class="host-tab${appState.activeHost===h?' active':''}" onclick="selectHost('${h}')">${labels[h]}</button>`
+  ).join('');
+}
+
+function selectHost(host) {
+  appState.activeHost = host;
+  renderHostTabs();
+  renderVirusGrid();
+}
+
+function renderVirusGrid() {
+  const el = document.getElementById('virus-grid');
+  const filtered = virusLibrary.filter(v => v.host === appState.activeHost);
+  el.innerHTML = filtered.map(v =>
+    `<div class="virus-card${appState.selectedVirus&&appState.selectedVirus.pdb===v.pdb?' selected':''}" onclick="selectVirus('${v.pdb}')">
+      <div class="virus-name">${v.name}</div>
+      <div class="virus-family">${v.family}</div>
+      <div class="virus-pdb">PDB: ${v.pdb} · T=${v.t}</div>
+    </div>`
+  ).join('');
+}
+
+async function selectVirus(pdbId) {
+  const virus = virusLibrary.find(v => v.pdb === pdbId);
+  if (!virus) return;
+  appState.selectedVirus = virus;
+
+  // Update info panel
+  document.getElementById('info-virus-name').textContent = virus.name;
+  document.getElementById('info-pdb').textContent = virus.pdb;
+  document.getElementById('info-t').textContent = `T = ${virus.t}`;
+  document.getElementById('info-hexamers').textContent = 10 * (virus.t - 1);
+  document.getElementById('info-subunits').textContent = 60 * virus.t;
+  document.getElementById('info-panel').classList.add('visible');
+  document.getElementById('confirm-capsid-btn').disabled = false;
+
+  // Pre-fill card state
+  appState.card.tSymmetry = `T = ${virus.t}`;
+  appState.card.habitat = virus.host.charAt(0).toUpperCase() + virus.host.slice(1);
+
+  renderVirusGrid();
+  saveSession();
+
+  // Load structure
+  if (molstarReady && mainViewer) {
+    await loadStructureInMolstar(virus.pdb);
+  }
+}
+
+function copyPdb() {
+  if (appState.selectedVirus) {
+    navigator.clipboard.writeText(appState.selectedVirus.pdb).then(() => showToast('PDB ID copied!'));
+  }
+}
+
+// ============================================================
+// STAGE 2 — MUSIC IMPORT
+// ============================================================
+function showIframeFallback() {
+  document.getElementById('iframe-fallback').style.display = 'block';
+  document.querySelector('.youtube-frame').style.display = 'none';
+}
+
+function checkIframeLoad(iframe) {
+  // Detect X-Frame-Options block: iframe loads but is about:blank or cross-origin blocked
+  setTimeout(() => {
+    try {
+      // If we can access contentDocument, it loaded fine
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc || doc.URL === 'about:blank' || doc.body?.innerHTML === '') {
+        showIframeFallback();
+      }
+    } catch(e) {
+      // Cross-origin block means iframe loaded but we can't read it — it may be working
+      // Don't show fallback in this case; the iframe is probably live
+    }
+  }, 3000);
+}
+
+function handleAudioFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  appState.audioFile = file;
+  appState.trackName = file.name.replace(/\.[^/.]+$/, '');
+  const url = URL.createObjectURL(file);
+  const audio = document.getElementById('audio-el');
+  audio.src = url;
+  audio.load();
+  audio.addEventListener('loadedmetadata', () => {
+    appState.audioDuration = audio.duration;
+    document.getElementById('audio-time').textContent = `0:00 / ${formatTime(audio.duration)}`;
+    document.getElementById('audio-scrubber').max = audio.duration;
+  }, { once: true });
+  audio.addEventListener('timeupdate', updateScrubber);
+  document.getElementById('track-name-display').textContent = appState.trackName;
+  document.getElementById('waveform-placeholder').style.display = 'none';
+  document.getElementById('audio-player-section').style.display = 'block';
+  document.getElementById('use-track-btn').disabled = false;
+  document.getElementById('track-status-msg').textContent = `"${appState.trackName}" loaded.`;
+  saveSession();
+}
+
+function formatTime(s) {
+  if (isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function togglePlayPause() {
+  const audio = document.getElementById('audio-el');
+  const btn = document.getElementById('play-pause-btn');
+  if (audio.paused) { audio.play(); btn.textContent = '⏸'; }
+  else { audio.pause(); btn.textContent = '▶'; }
+}
+
+function seekAudio(val) {
+  const audio = document.getElementById('audio-el');
+  audio.currentTime = val;
+}
+
+function updateScrubber() {
+  const audio = document.getElementById('audio-el');
+  document.getElementById('audio-scrubber').value = audio.currentTime;
+  document.getElementById('audio-time').textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+}
+
+function skipAudio() {
+  appState.trackName = 'No track';
+  goToStage(3);
+}
+
+// ============================================================
+// STAGE 3 — MAPPING PANELS
+// ============================================================
+const beatOptions = ['Quarter Note','Half Note','Triplet','Quintuplet','Syncopated','Rest'];
+const instrumentOptions = ['Piano','Strings','Brass','Woodwind','Percussion','Voice','Synthesizer'];
+const rhythmOptions = ['Steady Pulse','Swing','Polyrhythm','Accelerando','Ritardando','Silence'];
+const dynamicsOptions = ['pp','p','mf','f','ff','Crescendo','Decrescendo'];
+
+function buildFoldPanelContent(fold) {
+  const m = appState.mappings[fold];
+  const label = fold === 'fold2' ? '2' : fold === 'fold3' ? '3' : '5';
+  return `
+  <div class="mb-12">
+    <div class="mapping-label">Subunit Count (${fold === 'fold2' ? '2-60' : '2-60'})</div>
+    <div class="slider-wrap">
+      <input type="range" min="2" max="60" value="${m.subunits}" oninput="updateMapping('${fold}','subunits',+this.value);document.getElementById('sv-${fold}').textContent=this.value;updateSummaryTable();">
+      <span class="slider-val" id="sv-${fold}">${m.subunits}</span>
+    </div>
+  </div>
+
+  <div class="mb-12">
+    <div class="mapping-label">Orientation</div>
+    <div class="orient-section">
+      <div class="orient-sliders">
+        <div class="mb-8">
+          <div class="mapping-label">X Rotation: <span id="ox-${fold}">${m.x}°</span></div>
+          <input type="range" min="0" max="360" value="${m.x}" oninput="updateMapping('${fold}','x',+this.value);document.getElementById('ox-${fold}').textContent=this.value+'°';updateOrientDiagram('${fold}',+this.value)">
+        </div>
+        <div class="mb-8">
+          <div class="mapping-label">Y Rotation: <span id="oy-${fold}">${m.y}°</span></div>
+          <input type="range" min="0" max="360" value="${m.y}" oninput="updateMapping('${fold}','y',+this.value);document.getElementById('oy-${fold}').textContent=this.value+'°';applyViewerRotation('${fold}')">
+        </div>
+        <div>
+          <div class="mapping-label">Z Rotation: <span id="oz-${fold}">${m.z}°</span></div>
+          <input type="range" min="0" max="360" value="${m.z}" oninput="updateMapping('${fold}','z',+this.value);document.getElementById('oz-${fold}').textContent=this.value+'°';applyViewerRotation('${fold}')">
+        </div>
+      </div>
+      <div class="orient-diagram">
+        <svg id="orient-svg-${fold}" width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="#e0d8ce" stroke-width="2"/>
+          <line id="orient-line-${fold}" x1="30" y1="30" x2="30" y2="4" stroke="${fold==='fold2'?'#E8937F':fold==='fold3'?'#8FAF8F':'#C3B1D9'}" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="mapping-row">
+    <div>
+      <div class="mapping-label">Beat Pattern</div>
+      <select class="mapping-select" onchange="updateMapping('${fold}','beat',this.value);updateSummaryTable();">
+        ${beatOptions.map(o=>`<option ${m.beat===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>
+    <div>
+      <div class="mapping-label">Instrument</div>
+      <select class="mapping-select" onchange="updateMapping('${fold}','instrument',this.value);applyInstrumentFilter(this.value);updateSummaryTable();">
+        ${instrumentOptions.map(o=>`<option ${m.instrument===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>
+    <div>
+      <div class="mapping-label">Rhythm Feel</div>
+      <select class="mapping-select" onchange="updateMapping('${fold}','rhythm',this.value);updateSummaryTable();">
+        ${rhythmOptions.map(o=>`<option ${m.rhythm===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>
+    <div>
+      <div class="mapping-label">Dynamics</div>
+      <select class="mapping-select" onchange="updateMapping('${fold}','dynamics',this.value);applyDynamicsOpacity(this.value);updateSummaryTable();">
+        ${dynamicsOptions.map(o=>`<option ${m.dynamics===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>
+  </div>
+
+  <div>
+    <div class="mapping-label">Justification</div>
+    <textarea class="justify-area" placeholder="I chose this mapping because..." oninput="updateMapping('${fold}','justification',this.value)">${m.justification}</textarea>
+  </div>`;
+}
+
+function updateOrientDiagram(fold, angleDeg) {
+  const line = document.getElementById('orient-line-' + fold);
+  if (!line) return;
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  const r = 26;
+  const x2 = 30 + r * Math.cos(rad);
+  const y2 = 30 + r * Math.sin(rad);
+  line.setAttribute('x2', x2);
+  line.setAttribute('y2', y2);
+}
+
+function applyViewerRotation(fold) {
+  const m = appState.mappings[fold];
+  const wrap = document.getElementById('molstar-main-wrap');
+  if (wrap) {
+    wrap.style.transform = `perspective(600px) rotateX(${m.y * 0.1}deg) rotateY(${m.x * 0.1}deg)`;
+  }
+  updateOrientDiagram(fold, m.x);
+}
+
+function applyDynamicsOpacity(val) {
+  const opacityMap = { pp: 0.3, p: 0.5, mf: 0.65, f: 0.8, ff: 1.0, Crescendo: 0.7, Decrescendo: 0.7 };
+  const wrap = document.getElementById('molstar-main-wrap');
+  if (wrap) wrap.style.opacity = opacityMap[val] || 0.65;
+}
+
+function applyInstrumentFilter(instrument) {
+  const wrap = document.getElementById('molstar-main-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('synth-anim');
+  const filters = {
+    Piano: 'grayscale(100%)',
+    Strings: 'sepia(60%) saturate(120%)',
+    Brass: 'sepia(100%) saturate(180%) brightness(110%)',
+    Woodwind: 'hue-rotate(90deg) saturate(130%)',
+    Voice: 'hue-rotate(300deg) saturate(120%)',
+    Percussion: 'hue-rotate(200deg) saturate(150%)',
+    Synthesizer: ''
+  };
+  if (instrument === 'Synthesizer') {
+    wrap.style.filter = '';
+    wrap.classList.add('synth-anim');
+  } else {
+    wrap.style.filter = filters[instrument] || '';
+  }
+}
+
+function updateMapping(fold, key, value) {
+  appState.mappings[fold][key] = value;
+  saveSession();
+}
+
+function toggleFoldPanel(fold) {
+  const body = document.getElementById('body-' + fold);
+  const header = body.previousElementSibling;
+  const isOpen = body.classList.contains('open');
+  // Close all
+  ['fold2','fold3','fold5'].forEach(f => {
+    document.getElementById('body-'+f)?.classList.remove('open');
+    document.getElementById('body-'+f)?.previousElementSibling?.classList.remove('open');
+  });
+  if (!isOpen) {
+    body.classList.add('open');
+    header.classList.add('open');
+    // Show axis for this fold only
+    appState.axisToggles = { fold2: false, fold3: false, fold5: false };
+    appState.axisToggles[fold] = true;
+    updateAxisBtns();
+    updateAxisOverlay();
+  }
+}
+
+function updateSummaryTable() {
+  const tbody = document.getElementById('summary-body');
+  if (!tbody) return;
+  const folds = [
+    { key: 'fold2', label: '2-Fold', color: '#E8937F' },
+    { key: 'fold3', label: '3-Fold', color: '#8FAF8F' },
+    { key: 'fold5', label: '5-Fold', color: '#C3B1D9' }
+  ];
+  tbody.innerHTML = folds.map(f => {
+    const m = appState.mappings[f.key];
+    return `<tr>
+      <td><span class="dot" style="background:${f.color}"></span>${f.label}</td>
+      <td>${m.subunits}</td>
+      <td>${m.instrument}</td>
+      <td>${m.dynamics}</td>
+      <td>${m.beat}</td>
+      <td>${m.rhythm}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// STAGE 4 — CARD CREATOR
+// ============================================================
+function initStage4() {
+  const virus = appState.selectedVirus;
+  if (!virus) return;
+
+  document.getElementById('card-virus-title').textContent = virus.name;
+
+  // Fill inputs
+  document.getElementById('card-t').value = appState.card.tSymmetry || `T = ${virus.t}`;
+  document.getElementById('card-habitat').value = appState.card.habitat || virus.host;
+  document.getElementById('card-disease').value = appState.card.disease || '';
+  document.getElementById('card-funfact').value = appState.card.funFact || '';
+  document.getElementById('ctrl-t').value = appState.card.tSymmetry || `T = ${virus.t}`;
+  document.getElementById('ctrl-habitat').value = appState.card.habitat || virus.host;
+  document.getElementById('ctrl-disease').value = appState.card.disease || '';
+  document.getElementById('ctrl-funfact').value = appState.card.funFact || '';
+
+  // Card folds display
+  const foldColors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
+  const foldLabels = { fold2: '2-Fold', fold3: '3-Fold', fold5: '5-Fold' };
+  document.getElementById('card-folds-display').innerHTML = Object.keys(appState.mappings).map(fold => {
+    const m = appState.mappings[fold];
+    return `<div class="card-fold-row">
+      <span class="dot" style="background:${foldColors[fold]};width:10px;height:10px;"></span>
+      <strong>${foldLabels[fold]}</strong> · ${m.instrument} · ${m.dynamics} · ${m.beat}
+    </div>`;
+  }).join('');
+
+  // Card mapping preview in controls
+  document.getElementById('card-mapping-preview').innerHTML = Object.keys(appState.mappings).map(fold => {
+    const m = appState.mappings[fold];
+    return `<div class="card-fold-row mb-8">
+      <span class="dot" style="background:${foldColors[fold]};"></span>
+      <span class="text-sm"><strong>${foldLabels[fold]}</strong>: ${m.instrument}, ${m.dynamics}, ${m.beat}, ${m.rhythm}</span>
+    </div>`;
+  }).join('');
+
+  // Initialize card viewer if needed
+  if (!cardViewerInitialized) {
+    cardViewerInitialized = true;
+    initMolstar('molstar-card-slot').then(viewer => {
+      cardViewer = viewer;
+      if (virus) {
+        viewer.loadStructureFromUrl(
+          `https://files.rcsb.org/download/${virus.pdb}.cif`, 'mmcif'
+        ).catch(e => console.warn('Card viewer load:', e));
+      }
+    });
+  }
+}
+
+function updateCard(field, value) {
+  appState.card[field] = value;
+  // Sync to ctrl input
+  const ctrlMap = { tSymmetry:'ctrl-t', habitat:'ctrl-habitat', disease:'ctrl-disease', funFact:'ctrl-funfact' };
+  const ctrlEl = document.getElementById(ctrlMap[field]);
+  if (ctrlEl && ctrlEl.value !== value) ctrlEl.value = value;
+  saveSession();
+}
+
+function syncCardField(field, cardInputId, value) {
+  appState.card[field] = value;
+  const cardEl = document.getElementById(cardInputId);
+  if (cardEl && cardEl.value !== value) cardEl.value = value;
+  saveSession();
+}
+
+async function captureCard() {
+  if (cardViewer) {
+    try {
+      const imgData = await cardViewer.plugin.helpers.viewportScreenshot?.getImageDataUri();
+      if (imgData) {
+        const slot = document.getElementById('molstar-card-slot');
+        slot.innerHTML = `<img src="${imgData}" style="width:100%;height:100%;object-fit:cover;">`;
+        appState.card.snapshot = imgData;
+        saveSession();
+        showToast('View captured!');
+      }
+    } catch(e) {
+      showToast('Capture failed. Try again.');
+    }
+  }
+}
+
+// ============================================================
+// STAGE 5 — SAVE & SHARE
+// ============================================================
+function initStage5() {
+  const virus = appState.selectedVirus;
+  document.getElementById('student-name-input').value = appState.studentName;
+  document.getElementById('summary-virus-title').textContent = virus ? virus.name : 'Unknown Virus';
+  document.getElementById('summary-student').textContent = appState.studentName ? `Student: ${appState.studentName}` : 'No name entered';
+  updateMappingsOverview();
+}
+
+function updateStudentName(val) {
+  appState.studentName = val;
+  document.getElementById('summary-student').textContent = val ? `Student: ${val}` : 'No name entered';
+  saveSession();
+}
+
+function updateMappingsOverview() {
+  const foldColors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
+  const foldLabels = { fold2: '2-Fold', fold3: '3-Fold', fold5: '5-Fold' };
+  document.getElementById('summary-mappings-overview').innerHTML = Object.keys(appState.mappings).map(fold => {
+    const m = appState.mappings[fold];
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.85rem;">
+      <span class="dot" style="background:${foldColors[fold]};flex-shrink:0;"></span>
+      <strong>${foldLabels[fold]}:</strong> ${m.instrument} · ${m.dynamics} · ${m.beat} · ${m.rhythm}
+    </div>`;
+  }).join('');
+}
+
+function buildSessionObject() {
+  return {
+    version: 1,
+    date: new Date().toISOString().slice(0,10),
+    studentName: appState.studentName,
+    virus: appState.selectedVirus,
+    trackName: appState.trackName,
+    mappings: appState.mappings,
+    card: { ...appState.card, snapshot: '' }, // omit snapshot from JSON
+    completedStages: [...appState.completedStages]
+  };
+}
+
+function downloadJSON() {
+  const session = buildSessionObject();
+  const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const virusName = appState.selectedVirus ? appState.selectedVirus.name.replace(/\s+/g,'_') : 'Unknown';
+  a.href = url;
+  a.download = `session_${virusName}_${session.date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON downloaded!');
+}
+
+function downloadCardPNG() {
+  const card = document.querySelector('.trading-card');
+  if (!card) return;
+  html2canvas(card, { useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const virusName = appState.selectedVirus ? appState.selectedVirus.name.replace(/\s+/g,'_') : 'Unknown';
+      a.href = url;
+      a.download = `card_${virusName}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Card PNG downloaded!');
+    });
+  });
+}
+
+function copyShareLink() {
+  const session = buildSessionObject();
+  const encoded = btoa(JSON.stringify(session));
+  const url = window.location.origin + window.location.pathname + '?session=' + encoded;
+  navigator.clipboard.writeText(url).then(() => showToast('Share link copied!'));
+}
+
+// ============================================================
+// PRESENTATION MODE
+// ============================================================
+let presInterval = null;
+let foldIndex = 0;
+const foldCycle = ['fold2','fold3','fold5'];
+let presLoopActive = false;
+
+function enterPresentation() {
+  const overlay = document.getElementById('pres-overlay');
+  overlay.classList.add('visible');
+
+  // Populate info
+  const virus = appState.selectedVirus;
+  document.getElementById('pres-virus-name').textContent = virus ? virus.name : '';
+  document.getElementById('pres-student-name').textContent = appState.studentName ? `Student: ${appState.studentName}` : '';
+  document.getElementById('pres-virus-info').innerHTML = virus ?
+    `<div>Family: ${virus.family}</div><div>T = ${virus.t} | Host: ${virus.host}</div>
+     <div style="margin-top:6px;">${appState.card.disease || ''}</div>
+     <div style="margin-top:4px;font-style:italic;opacity:.8;">${appState.card.funFact || ''}</div>` : '';
+
+  const foldColors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
+  const foldLabels = { fold2: '2-Fold', fold3: '3-Fold', fold5: '5-Fold' };
+  document.getElementById('pres-mapping-body').innerHTML = Object.keys(appState.mappings).map(fold => {
+    const m = appState.mappings[fold];
+    return `<tr>
+      <td><span class="dot" style="background:${foldColors[fold]};"></span>${foldLabels[fold]}</td>
+      <td>${m.instrument}</td><td>${m.dynamics}</td><td>${m.beat}</td><td>${m.rhythm}</td>
+    </tr>`;
+  }).join('');
+
+  // Move viewer
+  const slot = document.getElementById('pres-viewer-slot');
+  const wrap = document.getElementById('molstar-main-wrap');
+  if (slot && wrap) slot.appendChild(wrap);
+
+  setTimeout(() => {
+    try { mainViewer?.plugin?.canvas3d?.requestCameraReset(); } catch(e) {}
+    updateAxisOverlay();
+  }, 200);
+}
+
+function togglePresLoop() {
+  presLoopActive = !presLoopActive;
+  const btn = document.getElementById('pres-loop-btn');
+  if (presLoopActive) {
+    btn.textContent = '⏹ Stop Loop';
+    btn.classList.add('active-btn');
+    startAxisCycle();
+  } else {
+    btn.textContent = '▶ Loop Axes';
+    btn.classList.remove('active-btn');
+    if (presInterval) { clearInterval(presInterval); presInterval = null; }
+  }
+}
+
+function startAxisCycle() {
+  if (presInterval) clearInterval(presInterval);
+  presInterval = setInterval(() => {
+    appState.axisToggles = { fold2: false, fold3: false, fold5: false };
+    appState.axisToggles[foldCycle[foldIndex]] = true;
+    updateAxisOverlay();
+    foldIndex = (foldIndex + 1) % 3;
+  }, 3000);
+}
+
+function exitPresentation() {
+  if (presInterval) { clearInterval(presInterval); presInterval = null; }
+  presLoopActive = false;
+  document.getElementById('pres-loop-btn').textContent = '▶ Loop Axes';
+  document.getElementById('pres-loop-btn').classList.remove('active-btn');
+  document.getElementById('pres-overlay').classList.remove('visible');
+  // Move viewer back to stage 5
+  moveViewerToSlot('stage-5-viewer-slot');
+}
+
+// ============================================================
+// STAGE NAVIGATION
+// ============================================================
+function goToStage(n) {
+  // Validate forward progression
+  if (n > 1 && !appState.selectedVirus) { showToast('Please select a virus first.'); return; }
+  // Mark current stage as completed when advancing
+  if (n > appState.currentStage) {
+    appState.completedStages.add(appState.currentStage);
+  }
+  appState.currentStage = n;
+  renderProgress();
+  showStage(n);
+  saveSession();
+}
+
+function showStage(n) {
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('stage-' + n);
+  if (el) el.classList.add('active');
+
+  // Move viewer to appropriate slot
+  const slotMap = { 1: 'stage-1-viewer-slot', 2: 'stage-2-viewer-slot', 3: 'stage-3-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
+  const slot = slotMap[n];
+  if (slot) {
+    moveViewerToSlot(slot);
+  }
+
+  if (n === 2) {
+    startSpin();
+    // Re-enable use track button if track loaded
+    document.getElementById('use-track-btn').disabled = !appState.audioFile;
+  } else if (n === 3) {
+    stopSpin();
+    document.getElementById('molstar-main-wrap').style.transform = '';
+    document.getElementById('molstar-main-wrap').style.opacity = '';
+    document.getElementById('molstar-main-wrap').style.filter = '';
+    // Build panel contents
+    ['fold2','fold3','fold5'].forEach(fold => {
+      document.getElementById('content-' + fold).innerHTML = buildFoldPanelContent(fold);
+      updateOrientDiagram(fold, appState.mappings[fold].x);
+    });
+    updateSummaryTable();
+  } else if (n === 4) {
+    initStage4();
+  } else if (n === 5) {
+    initStage5();
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// PROGRESS BAR
+// ============================================================
+const stageLabels = ['Capsid Selection','Music Import','Symmetry Mapping','Create Card','Save & Share'];
+
+function renderProgress() {
+  const bar = document.getElementById('progress-bar');
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    const isCompleted = appState.completedStages.has(i);
+    const isActive = appState.currentStage === i;
+    const isFuture = !isCompleted && !isActive;
+    let cls = isCompleted ? 'completed' : isActive ? 'active' : 'future';
+    const clickable = isCompleted ? `onclick="navigateToCompleted(${i})"` : '';
+    html += `<div class="step-wrap">
+      <div class="step-node ${cls}" ${clickable}>
+        ${isCompleted ? '✓' : i}
+        <span class="step-label">${stageLabels[i-1]}</span>
+      </div>
+      ${i < 5 ? `<div class="step-connector${(isCompleted || appState.completedStages.has(i+1) || appState.currentStage > i) ? ' done' : ''}"></div>` : ''}
+    </div>`;
+  }
+  bar.innerHTML = html;
+}
+
+function navigateToCompleted(n) {
+  appState.currentStage = n;
+  renderProgress();
+  showStage(n);
+}
+
+// ============================================================
+// LOCAL STORAGE
+// ============================================================
+function saveSession() {
+  const toSave = {
+    stage: appState.currentStage,
+    completedStages: [...appState.completedStages],
+    selectedVirus: appState.selectedVirus,
+    activeHost: appState.activeHost,
+    axisToggles: appState.axisToggles,
+    mappings: appState.mappings,
+    card: appState.card,
+    studentName: appState.studentName,
+    trackName: appState.trackName
+  };
+  try { localStorage.setItem('viralbeat-session', JSON.stringify(toSave)); } catch(e) {}
+}
+
+function resumeSession() {
+  const raw = localStorage.getItem('viralbeat-session');
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (data.selectedVirus) appState.selectedVirus = data.selectedVirus;
+    if (data.completedStages) appState.completedStages = new Set(data.completedStages);
+    if (data.mappings) Object.assign(appState.mappings, data.mappings);
+    if (data.card) Object.assign(appState.card, data.card);
+    if (data.studentName) appState.studentName = data.studentName;
+    if (data.trackName) appState.trackName = data.trackName;
+    if (data.activeHost) appState.activeHost = data.activeHost;
+    if (data.axisToggles) appState.axisToggles = data.axisToggles;
+    const stage = data.stage || 1;
+    document.getElementById('resume-banner').style.display = 'none';
+    renderHostTabs();
+    renderVirusGrid();
+    if (appState.selectedVirus) {
+      // Restore info panel
+      const v = appState.selectedVirus;
+      document.getElementById('info-virus-name').textContent = v.name;
+      document.getElementById('info-pdb').textContent = v.pdb;
+      document.getElementById('info-t').textContent = `T = ${v.t}`;
+      document.getElementById('info-hexamers').textContent = 10 * (v.t - 1);
+      document.getElementById('info-subunits').textContent = 60 * v.t;
+      document.getElementById('info-panel').classList.add('visible');
+      document.getElementById('confirm-capsid-btn').disabled = false;
+    }
+    goToStage(stage);
+    showToast('Session resumed!');
+  } catch(e) {
+    console.error('Resume failed', e);
+  }
+}
+
+function startFresh() {
+  localStorage.removeItem('viralbeat-session');
+  document.getElementById('resume-banner').style.display = 'none';
+}
+
+// ============================================================
+// READONLY / SHARED SESSION
+// ============================================================
+function renderReadonlyView(data) {
+  document.getElementById('app-root').style.display = 'none';
+  const readonlyEl = document.getElementById('readonly-view');
+  readonlyEl.classList.add('visible');
+
+  const virus = data.virus;
+  const foldColors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
+  const foldLabels = { fold2: '2-Fold', fold3: '3-Fold', fold5: '5-Fold' };
+
+  readonlyEl.querySelector('#readonly-content').innerHTML = `
+    <div class="card mb-16">
+      <h2 style="font-size:1.3rem;margin-bottom:8px;">${virus ? virus.name : 'Unknown Virus'}</h2>
+      ${data.studentName ? `<p style="color:var(--text-light);margin-bottom:8px;">Student: <strong>${data.studentName}</strong></p>` : ''}
+      ${virus ? `<p class="text-sm text-light">PDB: ${virus.pdb} · T = ${virus.t} · Family: ${virus.family} · Host: ${virus.host}</p>` : ''}
+      ${data.trackName && data.trackName !== 'No track' ? `<p class="text-sm" style="margin-top:6px;">Track: ${data.trackName}</p>` : ''}
+    </div>
+    <div class="card mb-16">
+      <h3 style="font-size:1rem;margin-bottom:12px;">Card Information</h3>
+      ${data.card ? `
+        <div class="info-row"><span class="info-label">T Symmetry</span><span class="info-value">${data.card.tSymmetry}</span></div>
+        <div class="info-row"><span class="info-label">Habitat</span><span class="info-value">${data.card.habitat}</span></div>
+        <div class="info-row"><span class="info-label">Disease / Role</span><span class="info-value">${data.card.disease}</span></div>
+        <div class="info-row"><span class="info-label">Fun Fact</span><span class="info-value">${data.card.funFact}</span></div>
+      ` : ''}
+    </div>
+    <div class="card">
+      <h3 style="font-size:1rem;margin-bottom:12px;">Symmetry Mappings</h3>
+      <div style="overflow-x:auto;">
+        <table class="summary-table">
+          <thead><tr><th>Fold</th><th>Subunits</th><th>Instrument</th><th>Dynamics</th><th>Beat</th><th>Rhythm</th><th>Justification</th></tr></thead>
+          <tbody>
+            ${data.mappings ? Object.keys(data.mappings).map(fold => {
+              const m = data.mappings[fold];
+              return `<tr>
+                <td><span class="dot" style="background:${foldColors[fold]};"></span>${foldLabels[fold]}</td>
+                <td>${m.subunits}</td><td>${m.instrument}</td><td>${m.dynamics}</td>
+                <td>${m.beat}</td><td>${m.rhythm}</td>
+                <td style="font-size:0.8rem;color:var(--text-light);max-width:200px;">${m.justification || '—'}</td>
+              </tr>`;
+            }).join('') : ''}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', async () => {
+  // 1. Check URL for ?session=
+  const params = new URLSearchParams(window.location.search);
+  const sessionParam = params.get('session');
+  if (sessionParam) {
+    try {
+      const data = JSON.parse(atob(sessionParam));
+      renderReadonlyView(data);
+      return;
+    } catch(e) {
+      console.warn('Invalid session param');
+    }
+  }
+
+  // 2. Show app
+  document.getElementById('app-root').style.display = 'block';
+
+  // 3. Check localStorage
+  const savedSession = localStorage.getItem('viralbeat-session');
+  if (savedSession) {
+    document.getElementById('resume-banner').classList.add('visible');
+  }
+
+  // 4. Render progress bar and initial virus grid
+  renderProgress();
+  renderHostTabs();
+  renderVirusGrid();
+  document.getElementById('stage-1').classList.add('active');
+
+  // 5. Init main Mol* viewer
+  try {
+    mainViewer = await initMolstar('molstar-main');
+    molstarReady = true;
+    // Move viewer to stage 1 slot
+    moveViewerToSlot('stage-1-viewer-slot');
+    showToast('Mol* viewer ready');
+  } catch(e) {
+    console.error('Molstar init failed:', e);
+    showToast('3D viewer unavailable. Check internet connection.');
+  }
+});
+</script>
+</body>
+</html>

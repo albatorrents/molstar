@@ -1799,9 +1799,11 @@ function s3GetBands() {
     treble:     Math.min(avg(Math.floor(bins*0.25),Math.floor(bins*0.65))    *b.treble,1),
     presence:   Math.min(avg(Math.floor(bins*0.06),Math.floor(bins*0.40))    *b.mid,   1),
     beat:       0,
-    piano:      Math.min(1, Math.max(0, (0.15 - oa) / 0.15)),
-    mezzoforte: Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)),
-    forte:      Math.min(1, Math.max(0, (oa - 0.25) / 0.25)),
+    // Dynamics bands only fire when there is actual audio (oa > 0.02)
+    // — prevents piano from triggering at 100% during true silence
+    piano:      oa > 0.02 ? Math.min(1, Math.max(0, (0.15 - oa) / 0.15)) : 0,
+    mezzoforte: oa > 0.02 ? Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)) : 0,
+    forte:      oa > 0.02 ? Math.min(1, Math.max(0, (oa - 0.25) / 0.25)) : 0,
   };
 }
 
@@ -1818,9 +1820,8 @@ function startS3Loops() {
   function previewFrame() {
     s3M = s3MulM3(Ry, s3M);
     const bands = s3GetBands();
-    // Always draw a solid T=1 dodecahedron regardless of the virus's actual T number.
-    // 5-fold → pentamers open, 3-fold → triangular petals, 2-fold → rhombic petals.
-    if (pc && window.drawDodecFrame) window.drawDodecFrame(pc, s3M, bands, appState.movements);
+    // Solid T=1 dodecahedron, single-axis mode: only the dominant fold opens.
+    if (pc && window.drawDodecFrame) window.drawDodecFrame(pc, s3M, bands, appState.movements, true);
     s3PreviewRAF = requestAnimationFrame(previewFrame);
   }
 
@@ -2844,7 +2845,9 @@ function showToast(msg) {
   // 3-fold → green triangular petals appear in the 3-fold gaps.
   // 2-fold → orange rhombic petals appear in the 2-fold gaps.
   // Combination: pentagon displacement = Σ of all active axis contributions.
-  window.drawDodecFrame = function(canvas, M, bands, movements) {
+  // singleAxis=true → only the dominant fold axis opens (winner-takes-all).
+  // Used by the Stage 3 live preview so students clearly see one axis at a time.
+  window.drawDodecFrame = function(canvas, M, bands, movements, singleAxis) {
     const {bass=0, mid=0, treble=0, presence=0, beat=0, piano=0, mezzoforte=0, forte=0} = bands;
     let s2=0, s3f=0, s5=0, wigAmp=0, scaleAll=1;
     if (movements) {
@@ -2866,6 +2869,18 @@ function showToast(msg) {
       applyBand(mezzoforte||0,movements.mezzoforte);
       applyBand(forte||0,movements.forte);
     } else { s2=bass; s3f=mid; s5=treble; }
+
+    // Winner-takes-all: keep only the strongest fold axis, zero the rest
+    if (singleAxis) {
+      const mx = Math.max(s2, s3f, s5);
+      if (mx > 0.01) {
+        s2  = s2  === mx ? s2  : 0;
+        s3f = s3f === mx ? s3f : 0;
+        s5  = s5  === mx ? s5  : 0;
+      } else {
+        s2 = s3f = s5 = 0; // nothing strong enough — stay closed
+      }
+    }
 
     const ctx = canvas.getContext('2d');
     const W=canvas.width, H=canvas.height;
@@ -3303,9 +3318,11 @@ function danceGetBands() {
     treble:     Math.min(avg(midEnd, trebleEnd)                  * b.treble, 1),
     presence:   Math.min(avg(Math.floor(bins*0.06), presenceEnd) * b.mid,    1),
     beat:       Math.min(beat, 1),
-    piano:      Math.min(1, Math.max(0, (0.15 - oa) / 0.15)),
-    mezzoforte: Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)),
-    forte:      Math.min(1, Math.max(0, (oa - 0.25) / 0.25)),
+    // Dynamics bands only fire when there is actual audio (oa > 0.02)
+    // — prevents piano from triggering at 100% during true silence
+    piano:      oa > 0.02 ? Math.min(1, Math.max(0, (0.15 - oa) / 0.15)) : 0,
+    mezzoforte: oa > 0.02 ? Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)) : 0,
+    forte:      oa > 0.02 ? Math.min(1, Math.max(0, (oa - 0.25) / 0.25)) : 0,
   };
 }
 

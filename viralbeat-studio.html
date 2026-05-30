@@ -916,8 +916,6 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
           <!-- Axis glow ring — coloured radial halo driven by active fold axis -->
           <canvas id="glow-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:13;"></canvas>
 
-          <!-- Full-size capsid opening overlay — same geometry as the guide, overlayMode=true -->
-          <canvas id="dance-overlay-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:15;"></canvas>
 
           <!-- Live frequency spectrum — coloured by fold-axis assignment -->
           <canvas id="freq-canvas" style="position:absolute;bottom:0;left:0;width:100%;height:72px;pointer-events:none;z-index:16;"></canvas>
@@ -3160,8 +3158,15 @@ function initDanceStage() {
     } catch(e) {}
     setTimeout(() => {
       try {
-        const r = mainViewer?.plugin?.canvas3d?.camera?.state?.radius;
-        if (r) appState.danceBaseRadius = r;
+        const cam = mainViewer?.plugin?.canvas3d?.camera;
+        const r = cam?.state?.radius;
+        if (r && cam) {
+          // Zoom out so the full capsid is comfortably framed
+          const zoomedR = r * 1.7;
+          cam.state.radius = zoomedR;
+          cam.setState?.({ ...cam.state });
+          appState.danceBaseRadius = zoomedR;
+        }
       } catch(e) {}
       // Turn off autonomous spin — we drive the camera manually from danceM
       try {
@@ -3233,22 +3238,10 @@ function danceLoop() {
   danceSmooth.presence = Math.max(raw.presence, danceSmooth.presence * 0.82) * (1-alpha) + raw.presence * alpha;
   danceSmooth.beat     = Math.max(raw.beat,     danceSmooth.beat     * 0.70) * (1-alpha) + raw.beat     * alpha;
 
-  // Draw guide icosahedron (corner, small canvas)
+  // Draw guide icosahedron (corner, small canvas) — same solid dodecahedron as Stage 3
   const canvas = document.getElementById('dance-canvas');
-  if (canvas && typeof window.drawDanceFrame === 'function') {
-    window.drawDanceFrame(canvas, danceM, danceSmooth, appState.movements, false);
-  }
-
-  // Draw full-size overlay (same rotation, overlayMode=true so Mol* shows through at rest)
-  const overlayC = document.getElementById('dance-overlay-canvas');
-  if (overlayC && typeof window.drawDanceFrame === 'function') {
-    const oW = overlayC.offsetWidth, oH = overlayC.offsetHeight;
-    if (oW > 0 && oH > 0 && (overlayC.width !== oW || overlayC.height !== oH)) {
-      overlayC.width = oW; overlayC.height = oH;
-    }
-    if (overlayC.width > 0) {
-      window.drawDanceFrame(overlayC, danceM, danceSmooth, appState.movements, true);
-    }
+  if (canvas && typeof window.drawDodecFrame === 'function') {
+    window.drawDodecFrame(canvas, danceM, danceSmooth, appState.movements);
   }
 
   // Synchronise Mol* camera with danceM so the structure and overlay rotate together.
@@ -3301,9 +3294,6 @@ function stopDanceStage() {
   if (audioEl && danceIsPlaying) { audioEl.pause(); danceIsPlaying = false; }
   const vw = document.getElementById('dance-viewer-wrap');
   if (vw) { vw.style.filter = ''; vw.style.transform = ''; vw.style.transition = ''; }
-  // Clear overlay
-  const ov = document.getElementById('dance-overlay-canvas');
-  if (ov) { const ctx=ov.getContext('2d'); ctx?.clearRect(0,0,ov.width,ov.height); }
   // Reset camera
   try { mainViewer?.plugin?.canvas3d?.requestCameraReset(); } catch(e) {}
   appState.danceBaseRadius = null;

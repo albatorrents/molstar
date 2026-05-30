@@ -2689,56 +2689,74 @@ function showToast(msg) {
       ctx.restore();
     }
 
-    // ── One unified dodecahedron — all fold types open the same 12 pentagons ─
-    // The combined amplitude drives a single dodecahedron opening.
-    // Triangular gaps (3-fold) and rhombic gaps (2-fold) appear naturally
-    // between the separating pentagon faces — no separate floating shapes.
-    const openAmp = Math.max(s5, s3f * 0.90, s2 * 0.80);
+    // ── Subunits — all types collected into one depth-sorted list ────────────
+    // 5-fold  → 12 dodecahedron pentagons  (purple, #9B72CF)
+    // 3-fold  → 20 icosahedron triangles   (green,  #3DAA6A)
+    // 2-fold  → 30 rhombus pairs            (orange, #E8624A)
+    // Multiple active: all corresponding subunits open from the same base;
+    // they share the same projection, rotation and depth-sort → one object.
+    const subunits = [];
 
-    if (openAmp > 0.005) {
-      const disp = openAmp * 0.60;
-
-      // Blended glow colour: weighted mix of each fold's colour
-      const tot = s5 + s3f + s2 + 0.001;
-      const gc = [
-        Math.round((0x9B*s5 + 0x3D*s3f + 0xE8*s2) / tot),
-        Math.round((0x72*s5 + 0xAA*s3f + 0x62*s2) / tot),
-        Math.round((0xCF*s5 + 0x6A*s3f + 0x4A*s2) / tot),
-      ];
-      const glowColor = `rgb(${gc[0]},${gc[1]},${gc[2]})`;
-
-      const pents = pts5.map(pt => {
+    // 5-fold pentamers
+    if (s5 > 0.005) {
+      const d5 = s5 * 0.60;
+      pts5.forEach(pt => {
         const c = pt.pos;
-        const cDisp = c.map(x => x*(1+disp));
-        const cr = applyM(M, cDisp);
-        return { c, cDisp, depth: cr[2], penta: dodecPenta[pt.vi] };
-      }).sort((a,b) => a.depth - b.depth);   // back-to-front
-
-      pents.forEach(({ c, cDisp, depth, penta }) => {
-        const front = depth < 0;
-        const alpha = front ? Math.min(0.93, openAmp*1.5) : Math.min(0.10, openAmp*0.14);
-        if (alpha < 0.01) return;
-
-        // Displace each dodecahedron vertex (= face centroid) along the pentagon axis
-        const dfc  = penta.map(fc => fc.map((x,j) => x + c[j]*disp));
-        const pts2d = dfc.map(p => pr(p));
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-
-        // Solid filled pentagon
-        ctx.beginPath();
-        pts2d.forEach((p,j) => { if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
-        ctx.closePath();
-        ctx.fillStyle = faceShade(cDisp, energy, 24, 42, 68); ctx.fill();
-
-        // Glowing outline — colour blended across active fold types
-        ctx.strokeStyle = glowColor; ctx.lineWidth = 1.6 + openAmp*2.4; ctx.lineJoin = 'round';
-        if (front) { ctx.shadowColor = glowColor; ctx.shadowBlur = 7 + openAmp*20; }
-        ctx.stroke();
-        ctx.restore();
+        const cD = c.map(x => x*(1+d5));
+        const cr = applyM(M, cD);
+        const corners = dodecPenta[pt.vi].map(fc => fc.map((x,j) => x + c[j]*d5));
+        subunits.push({ corners, cD, depth: cr[2], amp: s5, col: '#9B72CF', rb:24, gb:40, bb:66 });
       });
     }
+
+    // 3-fold trimers (individual icosahedron triangular faces)
+    if (s3f > 0.005) {
+      const d3 = s3f * 0.55;
+      pts3.forEach(pt => {
+        const c = pt.pos;
+        const cD = c.map(x => x*(1+d3));
+        const cr = applyM(M, cD);
+        const [a,b,cv] = F[pt.fi];
+        const corners = [V[a],V[b],V[cv]].map(v => v.map((x,j) => x + c[j]*d3));
+        subunits.push({ corners, cD, depth: cr[2], amp: s3f, col: '#3DAA6A', rb:18, gb:54, bb:40 });
+      });
+    }
+
+    // 2-fold dimers (rhombus pairs)
+    if (s2 > 0.005) {
+      const d2 = s2 * 0.55;
+      pts2.forEach(pt => {
+        const c = pt.pos;
+        const cD = c.map(x => x*(1+d2));
+        const cr = applyM(M, cD);
+        const [ea,eb] = E[pt.ei];
+        const key = Math.min(ea,eb)+'-'+Math.max(ea,eb);
+        const faces = EF[key]; if (!faces||faces.length<2) return;
+        const fc0 = FC[faces[0].fi], fc1 = FC[faces[1].fi];
+        const corners = [V[ea],fc0,V[eb],fc1].map(v => v.map((x,j) => x + c[j]*d2));
+        subunits.push({ corners, cD, depth: cr[2], amp: s2, col: '#E8624A', rb:54, gb:26, bb:26 });
+      });
+    }
+
+    // Depth-sort all subunit types together (back → front)
+    subunits.sort((a,b) => a.depth - b.depth);
+
+    subunits.forEach(({ corners, cD, depth, amp, col, rb, gb, bb }) => {
+      const front = depth < 0;
+      const fa = front ? Math.min(0.92, 0.30+amp*0.75) : Math.min(0.11, amp*0.13);
+      if (fa < 0.01) return;
+      const pts2d = corners.map(p => pr(p));
+      ctx.save();
+      ctx.globalAlpha = fa;
+      ctx.beginPath();
+      pts2d.forEach((p,j) => { if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      ctx.closePath();
+      ctx.fillStyle = faceShade(cD, energy, rb, gb, bb); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5+amp*2.2; ctx.lineJoin='round';
+      if (front && amp>0.05) { ctx.shadowColor=col; ctx.shadowBlur=6+amp*16; }
+      ctx.stroke();
+      ctx.restore();
+    });
 
     // ── Axis-centre markers — always visible, glow when active ────────────
     [[pts2,'#E8624A',s2],[pts3,'#3DAA6A',s3f],[pts5,'#9B72CF',s5]].forEach(([pts,col,amp])=>{

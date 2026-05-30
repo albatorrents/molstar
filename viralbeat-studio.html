@@ -2248,6 +2248,23 @@ function showToast(msg) {
                 (V[a][1]+V[b][1])/2,
                 (V[a][2]+V[b][2])/2]), ei: i }));
 
+  // Dodecahedron pentagons — dual of icosahedron.
+  // For each vertex vi, the 5 adjacent face-centroids sorted CCW form a pentagon
+  // that tiles the sphere perfectly with no overlap.  Used for 5-fold opening.
+  const dot3  = (a,b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const cross3b = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const dodecPenta = V.map((axis, vi) => {
+    const adjFC = pts3.filter(p => F[p.fi].includes(vi)).map(p => p.pos);
+    // Sort CCW around axis using atan2 in the plane perpendicular to axis
+    const ref = adjFC[0];
+    const tang = norm3(cross3b(axis, ref));   // tangent from axis to ref
+    const btan = cross3b(axis, tang);         // second tangent
+    return adjFC.sort((a, b) =>
+      Math.atan2(dot3(a, btan), dot3(a, tang)) -
+      Math.atan2(dot3(b, btan), dot3(b, tang))
+    );
+  });
+
   // ── 3×3 row-major matrix helpers ──
   const mulM = (A,B) => [
     A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
@@ -2605,9 +2622,10 @@ function showToast(msg) {
     const energy = Math.min(1, (s2*0.4 + s3f*0.35 + s5*0.25 + (scaleAll-1)*0.5));
     const breathe = scaleAll;
 
-    // Rotate + project vertices (with breathing scale)
+    // Rotate + project vertices (zoom out when subunits open so they stay in frame)
     const rv = V.map(v => applyM(M, v));
-    const fov = 2.8, s0 = Math.min(W, H) * 0.38 * fov * breathe;
+    const zoomOut = 1 - Math.max(s2, s3f, s5) * 0.22; // up to 22% smaller at full open
+    const fov = 2.8, s0 = Math.min(W, H) * 0.38 * fov * breathe * zoomOut;
     const pv = rv.map(r => [W/2 + r[0]*s0/(r[2]+fov), H/2 - r[1]*s0/(r[2]+fov)]);
 
     // Project any 3-D world point (for expanded outline corners)
@@ -2673,37 +2691,40 @@ function showToast(msg) {
       ctx.restore();
     }
 
-    // ── 5-fold: 12 pentamers open outward along their vertex direction ─────
+    // ── 5-fold: 12 non-overlapping dodecahedron pentagons open at 5-fold axes ─
+    // Each pentagon = 5 adjacent face-centroids around the vertex, sorted CCW.
+    // These 12 pentagons are the dual of the icosahedron and tile with no overlap.
     if (s5 > 0.005) {
-      const disp5 = s5 * 0.55;
+      const disp5 = s5 * 0.60;
       const pents = pts5.map(pt => {
-        const c = pt.pos;                          // unit-sphere vertex = 5-fold axis
-        const cDisp = c.map(x => x*(1+disp5));    // displaced center
+        const c = pt.pos;
+        const cDisp = c.map(x => x*(1+disp5));
         const cr = applyM(M, cDisp);
-        return { pt, c, cDisp, depth: cr[2] };
-      }).sort((a,b) => a.depth-b.depth);           // back-to-front
+        return { c, cDisp, depth: cr[2], penta: dodecPenta[pt.vi] };
+      }).sort((a,b) => a.depth-b.depth);
 
-      pents.forEach(({ pt, c, cDisp, depth }) => {
-        const nbrs = sortedNbr(pt.vi);
+      pents.forEach(({ c, cDisp, depth, penta }) => {
         const front = depth < 0;
-        // Each neighbor displaced along V[vi] direction (rigid-body pentamer)
-        const nDisp = nbrs.map(ni => V[ni].map((x,j) => x + c[j]*disp5));
+        const alpha = front ? Math.min(0.93, s5*1.5) : Math.min(0.10, s5*0.15);
+        if (alpha < 0.01) return;
 
-        // Draw 5 triangular faces: center → nbr[j] → nbr[j+1]
-        for (let j=0; j<5; j++) {
-          const corners = [cDisp, nDisp[j], nDisp[(j+1)%5]];
-          const fill = faceShade(cDisp, energy, 30, 50, 75);
-          drawSubunit(corners, fill, '#9B72CF', s5, front);
-        }
-        // Pentagon ring outline (axis perimeter)
-        const pnbrs = nDisp.map(v => pr(v));
+        // Displace each face-centroid along the vertex axis direction
+        const dfc = penta.map(fc => fc.map((x,j) => x + c[j]*disp5));
+        const pts2d = dfc.map(p => pr(p));
+
         ctx.save();
-        ctx.globalAlpha = front ? Math.min(1, s5*1.4) : 0.10;
+        ctx.globalAlpha = alpha;
+
+        // Solid fill with lighting
         ctx.beginPath();
-        pnbrs.forEach((p,j)=>{ if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        pts2d.forEach((p,j)=>{ if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
         ctx.closePath();
-        ctx.strokeStyle='#9B72CF'; ctx.lineWidth=1.8+s5*2;
-        ctx.shadowColor='#9B72CF'; ctx.shadowBlur=8+s5*18;
+        const fill = faceShade(cDisp, energy, 28, 45, 72);
+        ctx.fillStyle = fill; ctx.fill();
+
+        // Glowing pentagon outline
+        ctx.strokeStyle='#9B72CF'; ctx.lineWidth=1.6+s5*2.2; ctx.lineJoin='round';
+        if (front) { ctx.shadowColor='#9B72CF'; ctx.shadowBlur=7+s5*18; }
         ctx.stroke();
         ctx.restore();
       });

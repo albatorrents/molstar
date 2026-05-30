@@ -916,6 +916,7 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
           <!-- Symmetry-axis icosahedron guide — top-right overlay -->
           <div class="dance-ico-corner">
             <div class="dance-ico-title">SYMMETRY GUIDE</div>
+            <div id="dance-ico-tnum" style="font-size:0.55rem;color:rgba(180,210,255,0.60);text-align:center;margin-bottom:2px;font-family:'Lora',serif;letter-spacing:.06em;"></div>
             <canvas id="dance-canvas" width="200" height="155"></canvas>
             <div class="dance-legend" style="padding:5px 0 0;">
               <span class="dance-legend-item"><span class="dance-legend-dot" style="background:#E8624A;"></span><span style="color:#E8624A;">2-fold</span></span>
@@ -2759,6 +2760,36 @@ function showToast(msg) {
     });
     ctx.restore();
 
+    // ── T-number lattice lines — subdivide each face to show capsid complexity ──
+    // p segments per edge: T=1→1 (none), T=3,4→2, T=7→3, T=13→4
+    const tNum = (appState.selectedVirus && appState.selectedVirus.t) || 1;
+    const subP = tNum <= 1 ? 1 : tNum <= 4 ? 2 : tNum <= 9 ? 3 : 4;
+    if (subP > 1 && baseOpacity > 0.08) {
+      ctx.save();
+      fdata.forEach(({a, b, c, light}) => {
+        if (light < 0.04) return; // skip back-facing faces
+        ctx.globalAlpha = baseOpacity * 0.55 * (0.35 + 0.65 * light);
+        ctx.strokeStyle = 'rgba(0,18,38,0.80)';
+        ctx.lineWidth = 0.38;
+        const pA = pv[a], pB = pv[b], pC = pv[c];
+        ctx.beginPath();
+        for (let k = 1; k < subP; k++) {
+          const t = k / subP, s = 1 - t;
+          // Family 1: lines parallel to BC (constant α-barycentric)
+          ctx.moveTo(pA[0]*s+pB[0]*t, pA[1]*s+pB[1]*t);
+          ctx.lineTo(pA[0]*s+pC[0]*t, pA[1]*s+pC[1]*t);
+          // Family 2: lines parallel to AC (constant β-barycentric)
+          ctx.moveTo(pA[0]*s+pB[0]*t, pA[1]*s+pB[1]*t);
+          ctx.lineTo(pB[0]*t+pC[0]*s, pB[1]*t+pC[1]*s);
+          // Family 3: lines parallel to AB (constant γ-barycentric)
+          ctx.moveTo(pA[0]*s+pC[0]*t, pA[1]*s+pC[1]*t);
+          ctx.lineTo(pB[0]*s+pC[0]*t, pB[1]*s+pC[1]*t);
+        }
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
     // Helper: shade a displaced face
     function faceShade(dispCenter, energy, rBase, gBase, bBase) {
       const rc = applyM(M, dispCenter);
@@ -2888,6 +2919,10 @@ function initDanceStage() {
   // Show virus name
   const vn = document.getElementById('dance-virus-name');
   if (vn && appState.selectedVirus) vn.textContent = appState.selectedVirus.name;
+
+  // Show T number in guide label
+  const tnEl = document.getElementById('dance-ico-tnum');
+  if (tnEl) tnEl.textContent = appState.selectedVirus ? `T = ${appState.selectedVirus.t}` : '';
 
   // Show track name
   const tn = document.getElementById('dance-track-name');

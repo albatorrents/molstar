@@ -90,7 +90,6 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 @keyframes synthHue{0%{filter:hue-rotate(0deg) saturate(150%);}100%{filter:hue-rotate(360deg) saturate(150%);}}
 
 /* AXIS OVERLAY */
-.axis-svg-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;}
 
 /* AXIS TOGGLE BUTTONS */
 .axis-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
@@ -270,7 +269,7 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
 <!-- HIDDEN PERSISTENT VIEWER CONTAINER (moved into slots by JS) -->
 <div id="molstar-main-wrap" style="width:100%;height:100%;position:relative;display:none;">
   <div id="molstar-main" style="width:100%;height:100%;"></div>
-  <svg id="axis-svg" class="axis-svg-overlay"></svg>
+  <canvas id="axis-canvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:10;"></canvas>
 </div>
 
 <!-- MAIN APP -->
@@ -607,50 +606,117 @@ const virusLibrary = [
 ];
 
 // ============================================================
-// ICOSAHEDRON GEOMETRY
+// SYMMETRY AXES — fetched from RCSB GraphQL, drawn on canvas
 // ============================================================
-const phi = (1 + Math.sqrt(5)) / 2;
-const ICO_VERTICES = [
-  [0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],
-  [1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],
-  [phi,0,1],[phi,0,-1],[-phi,0,1],[-phi,0,-1]
-];
-const ICO_FACES = [
-  [0,1,8],[0,8,4],[0,4,5],[0,5,10],[0,10,1],
-  [1,6,8],[8,6,9],[8,9,4],[4,9,2],[4,2,5],
-  [5,2,11],[5,11,10],[10,11,7],[10,7,1],[1,7,6],
-  [3,9,6],[3,6,7],[3,7,11],[3,11,2],[3,2,9]
-];
+// symmetryAxesData holds the real axis segment data for the loaded virus.
+// Each entry is { start: [x,y,z], end: [x,y,z] } in PDB coordinate space.
+let symmetryAxesData = null; // { fold2: [...], fold3: [...], fold5: [...] }
+let axisCanvasSubscription = null;
 
-function normalize(v) {
-  const len = Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
-  return [v[0]/len, v[1]/len, v[2]/len];
+async function fetchSymmetryAxes(pdbId) {
+  const query = `query Q($entry_id: String!, $assembly_id: String!) {
+    assembly(entry_id: $entry_id, assembly_id: $assembly_id) {
+      rcsb_struct_symmetry {
+        symbol type kind
+        rotation_axes { order start end }
+      }
+    }
+  }`;
+  try {
+    const res = await fetch('https://data.rcsb.org/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { entry_id: pdbId.toLowerCase(), assembly_id: '1' } })
+    });
+    const json = await res.json();
+    const syms = json?.data?.assembly?.rcsb_struct_symmetry;
+    if (!syms?.length) return null;
+    // Prefer icosahedral/octahedral over C1
+    const sym = syms.find(s => s.symbol && !s.symbol.startsWith('C1')) || syms[0];
+    if (!sym?.rotation_axes?.length) return null;
+    const grouped = { fold2: [], fold3: [], fold5: [] };
+    for (const ax of sym.rotation_axes) {
+      const key = ax.order === 2 ? 'fold2' : ax.order === 3 ? 'fold3' : ax.order === 5 ? 'fold5' : null;
+      if (key) grouped[key].push({ start: ax.start, end: ax.end });
+    }
+    return grouped;
+  } catch(e) {
+    console.warn('Symmetry fetch failed:', e);
+    return null;
+  }
 }
 
-function get5FoldAxes() {
-  return ICO_VERTICES.map(v => normalize(v));
+// Project a world-space [x,y,z] point to canvas pixel coords using Mol*'s
+// camera.projectionView (column-major Float32Array). Returns null if behind camera.
+function projectToCanvas(pos, pv, canvasW, canvasH) {
+  const x = pos[0], y = pos[1], z = pos[2];
+  const px = pv[0]*x + pv[4]*y + pv[8]*z + pv[12];
+  const py = pv[1]*x + pv[5]*y + pv[9]*z + pv[13];
+  const pw = pv[3]*x + pv[7]*y + pv[11]*z + pv[15];
+  if (Math.abs(pw) < 1e-5) return null;
+  const ndcX = px / pw, ndcY = py / pw;
+  return { x: (ndcX + 1) * 0.5 * canvasW, y: (1 - ndcY) * 0.5 * canvasH, behind: pw < 0 };
 }
 
-function get3FoldAxes() {
-  return ICO_FACES.map(f => {
-    const a = ICO_VERTICES[f[0]], b = ICO_VERTICES[f[1]], c = ICO_VERTICES[f[2]];
-    return normalize([(a[0]+b[0]+c[0])/3, (a[1]+b[1]+c[1])/3, (a[2]+b[2]+c[2])/3]);
-  });
-}
+function redrawAxisCanvas() {
+  const canvas = document.getElementById('axis-canvas');
+  if (!canvas) return;
+  const wrap = document.getElementById('molstar-main-wrap');
+  const w = wrap.offsetWidth, h = wrap.offsetHeight;
+  if (w === 0 || h === 0) return;
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
 
-function get2FoldAxes() {
-  const edges = new Map();
-  for (const face of ICO_FACES) {
-    const pairs = [[face[0],face[1]],[face[1],face[2]],[face[0],face[2]]];
-    for (const [a,b] of pairs) {
-      const key = Math.min(a,b)+','+Math.max(a,b);
-      if (!edges.has(key)) edges.set(key, [a,b]);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  const anyOn = Object.values(appState.axisToggles).some(Boolean);
+  if (!anyOn || !symmetryAxesData) return;
+
+  const camera = mainViewer?.plugin?.canvas3d?.camera;
+  if (!camera) return;
+  const pv = camera.projectionView; // Float32Array 16
+
+  const colors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
+  const dotR  = { fold2: 4, fold3: 5, fold5: 6 };
+
+  for (const [fold, enabled] of Object.entries(appState.axisToggles)) {
+    if (!enabled) continue;
+    const axes = symmetryAxesData[fold];
+    if (!axes?.length) continue;
+    const color = colors[fold];
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+
+    for (const ax of axes) {
+      const p1 = projectToCanvas(ax.start, pv, w, h);
+      const p2 = projectToCanvas(ax.end, pv, w, h);
+      if (!p1 || !p2 || (p1.behind && p2.behind)) continue;
+
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      // Endpoint dots
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = color;
+      [p1, p2].forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, dotR[fold], 0, Math.PI * 2);
+        ctx.fill();
+      });
     }
   }
-  return Array.from(edges.values()).map(([a,b]) => {
-    const va = ICO_VERTICES[a], vb = ICO_VERTICES[b];
-    return normalize([(va[0]+vb[0])/2, (va[1]+vb[1])/2, (va[2]+vb[2])/2]);
-  });
+  ctx.globalAlpha = 1;
+}
+
+function subscribeAxisCanvas() {
+  if (axisCanvasSubscription) { try { axisCanvasSubscription.unsubscribe(); } catch(e) {} }
+  const canvas3d = mainViewer?.plugin?.canvas3d;
+  if (!canvas3d) return;
+  axisCanvasSubscription = canvas3d.didDraw.subscribe(redrawAxisCanvas);
 }
 
 // ============================================================
@@ -700,6 +766,8 @@ async function initMolstar(containerId) {
 
 async function loadStructureInMolstar(pdbId) {
   if (!mainViewer) return;
+  symmetryAxesData = null; // clear stale data while loading
+  redrawAxisCanvas();
   try {
     await mainViewer.loadStructureFromUrl(
       `https://files.rcsb.org/download/${pdbId}.cif`,
@@ -708,6 +776,10 @@ async function loadStructureInMolstar(pdbId) {
   } catch(e) {
     console.warn('Structure load failed:', e);
   }
+  // Fetch real symmetry axis coordinates from RCSB after structure is loaded
+  symmetryAxesData = await fetchSymmetryAxes(pdbId);
+  subscribeAxisCanvas(); // (re)subscribe so axes draw on every render frame
+  redrawAxisCanvas();
 }
 
 function startSpin() {
@@ -736,67 +808,15 @@ function moveViewerToSlot(slotId) {
     // Force resize
     setTimeout(() => {
       try { mainViewer?.plugin?.canvas3d?.requestCameraReset(); } catch(e) {}
-      updateAxisOverlay();
+      redrawAxisCanvas();
     }, 150);
-  }
-}
-
-// ============================================================
-// AXIS VISUALIZATION
-// ============================================================
-function projectAxis(ax, ay, az, w, h) {
-  const scale = Math.min(w, h) * 0.38;
-  const cx = w / 2, cy = h / 2;
-  const px = cx + ax * scale;
-  const py = cy - ay * scale;
-  return [px, py];
-}
-
-function updateAxisOverlay() {
-  const svg = document.getElementById('axis-svg');
-  if (!svg) return;
-  const wrap = document.getElementById('molstar-main-wrap');
-  const w = wrap.offsetWidth || 400;
-  const h = wrap.offsetHeight || 300;
-  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  svg.innerHTML = '';
-
-  const colors = { fold2: '#E8937F', fold3: '#8FAF8F', fold5: '#C3B1D9' };
-  const axesFns = {
-    fold2: get2FoldAxes,
-    fold3: get3FoldAxes,
-    fold5: get5FoldAxes
-  };
-
-  for (const [fold, enabled] of Object.entries(appState.axisToggles)) {
-    if (!enabled) continue;
-    const axes = axesFns[fold]();
-    const color = colors[fold];
-    for (const axis of axes) {
-      const [px, py] = projectAxis(axis[0], axis[1], axis[2], w, h);
-      const [nx, ny] = projectAxis(-axis[0], -axis[1], -axis[2], w, h);
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', nx); line.setAttribute('y1', ny);
-      line.setAttribute('x2', px); line.setAttribute('y2', py);
-      line.setAttribute('stroke', color);
-      line.setAttribute('stroke-width', '2');
-      line.setAttribute('opacity', '0.7');
-      svg.appendChild(line);
-      // Dot at axis endpoint
-      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('cx', px); dot.setAttribute('cy', py);
-      dot.setAttribute('r', '3');
-      dot.setAttribute('fill', color);
-      dot.setAttribute('opacity', '0.9');
-      svg.appendChild(dot);
-    }
   }
 }
 
 function toggleAxis(fold) {
   appState.axisToggles[fold] = !appState.axisToggles[fold];
   updateAxisBtns();
-  updateAxisOverlay();
+  redrawAxisCanvas();
   saveSession();
 }
 
@@ -1095,7 +1115,7 @@ function toggleFoldPanel(fold) {
     appState.axisToggles = { fold2: false, fold3: false, fold5: false };
     appState.axisToggles[fold] = true;
     updateAxisBtns();
-    updateAxisOverlay();
+    redrawAxisCanvas();
   }
 }
 
@@ -1323,7 +1343,7 @@ function enterPresentation() {
 
   setTimeout(() => {
     try { mainViewer?.plugin?.canvas3d?.requestCameraReset(); } catch(e) {}
-    updateAxisOverlay();
+    redrawAxisCanvas();
   }, 200);
 }
 
@@ -1346,7 +1366,7 @@ function startAxisCycle() {
   presInterval = setInterval(() => {
     appState.axisToggles = { fold2: false, fold3: false, fold5: false };
     appState.axisToggles[foldCycle[foldIndex]] = true;
-    updateAxisOverlay();
+    redrawAxisCanvas();
     foldIndex = (foldIndex + 1) % 3;
   }, 3000);
 }
@@ -1600,6 +1620,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   try {
     mainViewer = await initMolstar('molstar-main');
     molstarReady = true;
+    subscribeAxisCanvas(); // hook canvas draw to camera updates
     // Move viewer to stage 1 slot
     moveViewerToSlot('stage-1-viewer-slot');
     showToast('Mol* viewer ready');

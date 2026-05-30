@@ -2616,112 +2616,162 @@ function showToast(msg) {
       return [W/2 + r[0]*sc, H/2 - r[1]*sc, r[2]];
     }
 
-    // Depth-sort faces + lighting
+    // Pre-compute face centroids (used by 3-fold and 2-fold subunit rendering)
+    const FC = F.map(([a,b,c]) => [
+      (V[a][0]+V[b][0]+V[c][0])/3,
+      (V[a][1]+V[b][1]+V[c][1])/3,
+      (V[a][2]+V[b][2]+V[c][2])/3
+    ]);
+
+    const maxAmp = Math.max(s2, s3f, s5);
+
+    // ── Base icosahedron — fades as subunits open ──────────────────────────
+    const baseOpacity = Math.max(0.06, 1 - maxAmp * 2.5);
     const fdata = F.map(([a,b,c], fi) => {
       const cz = (rv[a][2]+rv[b][2]+rv[c][2])/3;
       const cn = applyM(M, FN[fi]);
-      return {a, b, c, cz, light: Math.max(0, -cn[2])};
+      return {a, b, c, fi, cz, light: Math.max(0, -cn[2])};
     }).sort((x,y) => x.cz - y.cz);
 
-    // Draw solid faces — deep teal/navy, brightened by energy
+    ctx.save();
+    ctx.globalAlpha = baseOpacity;
     fdata.forEach(({a, b, c, light}) => {
       const sh = 0.14 + 0.86 * light;
       const boost = 1 + energy * 0.45;
-      const fr = Math.min(255, Math.round((18 + sh*55)*boost));
-      const fg = Math.min(255, Math.round((55 + sh*95)*boost));
-      const fb = Math.min(255, Math.round((80 + sh*110)*boost));
+      const fr = Math.min(255, Math.round((18+sh*55)*boost));
+      const fg = Math.min(255, Math.round((55+sh*95)*boost));
+      const fb = Math.min(255, Math.round((80+sh*110)*boost));
       ctx.beginPath();
       ctx.moveTo(pv[a][0],pv[a][1]); ctx.lineTo(pv[b][0],pv[b][1]); ctx.lineTo(pv[c][0],pv[c][1]);
       ctx.closePath();
-      ctx.fillStyle = `rgb(${fr},${fg},${fb})`; ctx.fill();
-      ctx.strokeStyle = 'rgba(0,20,40,0.55)'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.fillStyle=`rgb(${fr},${fg},${fb})`; ctx.fill();
+      ctx.strokeStyle='rgba(0,20,40,0.4)'; ctx.lineWidth=0.5; ctx.stroke();
     });
+    ctx.restore();
 
-    // Helper: draw an expanded closed polygon outline + soft fill
-    function drawExpanded(corners3d, centerRz, color, amp, baseLineW) {
-      if (amp < 0.015) return;
-      const front = centerRz < 0;
-      const alpha = (front ? 1 : 0.1) * Math.min(1, amp * 1.8);
-      const proj2d = corners3d.map(pt => pr(pt));
+    // Helper: shade a displaced face
+    function faceShade(dispCenter, energy, rBase, gBase, bBase) {
+      const rc = applyM(M, dispCenter);
+      const light = Math.max(0, -rc[2]);
+      const sh = 0.2 + 0.8*light, bo = 1+energy*0.4;
+      return `rgb(${Math.min(255,Math.round((rBase+sh*50)*bo))},${Math.min(255,Math.round((gBase+sh*80)*bo))},${Math.min(255,Math.round((bBase+sh*100)*bo))})`;
+    }
 
-      // Outer glow pass
+    // Helper: draw a solid displaced polygon with glow stroke
+    function drawSubunit(pts3d, fillColor, strokeColor, amp, front) {
+      const pts2d = pts3d.map(p => pr(p));
+      const fa = front ? Math.min(0.95, 0.4+amp*0.7) : Math.min(0.14, 0.04+amp*0.1);
       ctx.save();
-      ctx.globalAlpha = alpha * 0.4 * amp;
+      ctx.globalAlpha = fa;
       ctx.beginPath();
-      proj2d.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+      pts2d.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
       ctx.closePath();
-      ctx.strokeStyle = color; ctx.lineWidth = baseLineW + amp*6; ctx.lineJoin='round';
-      ctx.shadowColor = color; ctx.shadowBlur = 12 * amp;
+      ctx.fillStyle = fillColor; ctx.fill();
+      ctx.strokeStyle = strokeColor; ctx.lineWidth = 1.2 + amp*2; ctx.lineJoin='round';
+      if (front && amp>0.05) { ctx.shadowColor=strokeColor; ctx.shadowBlur=5+amp*14; }
       ctx.stroke();
-
-      // Fill
-      ctx.globalAlpha = alpha * 0.18 * amp;
-      ctx.fillStyle = color; ctx.fill();
-
-      // Crisp stroke
-      ctx.globalAlpha = alpha;
-      ctx.beginPath();
-      proj2d.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
-      ctx.closePath();
-      ctx.strokeStyle = color; ctx.lineWidth = baseLineW + amp*1.5;
-      ctx.shadowBlur = 0; ctx.stroke();
       ctx.restore();
     }
 
-    // 2-fold rhombuses (s2) — expand corners away from edge midpoint (axis at center)
-    pts2.forEach(pt => {
-      if (s2 < 0.015) return;
-      const sc = 1 + s2 * 1.1;
-      const c = pt.pos, cr = applyM(M, c);
-      const [a, b] = E[pt.ei];
-      const key = Math.min(a,b)+'-'+Math.max(a,b);
-      const faces = EF[key]; if (!faces || faces.length < 2) return;
-      const c1 = faces[0].other, c2 = faces[1].other;
-      const exp = [V[a],V[c1],V[b],V[c2]].map(v =>
-        [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc]
-      );
-      drawExpanded(exp, cr[2], '#E8624A', s2, 1.5);
-    });
+    // ── 5-fold: 12 pentamers open outward along their vertex direction ─────
+    if (s5 > 0.005) {
+      const disp5 = s5 * 0.55;
+      const pents = pts5.map(pt => {
+        const c = pt.pos;                          // unit-sphere vertex = 5-fold axis
+        const cDisp = c.map(x => x*(1+disp5));    // displaced center
+        const cr = applyM(M, cDisp);
+        return { pt, c, cDisp, depth: cr[2] };
+      }).sort((a,b) => a.depth-b.depth);           // back-to-front
 
-    // 3-fold triangles (s3f) — expand corners away from face centre (axis at center)
-    pts3.forEach(pt => {
-      if (s3f < 0.015) return;
-      const sc = 1 + s3f * 1.1;
-      const c = pt.pos, cr = applyM(M, c);
-      const [a, b, cv] = F[pt.fi];
-      const exp = [V[a],V[b],V[cv]].map(v =>
-        [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc]
-      );
-      drawExpanded(exp, cr[2], '#3DAA6A', s3f, 1.5);
-    });
+      pents.forEach(({ pt, c, cDisp, depth }) => {
+        const nbrs = sortedNbr(pt.vi);
+        const front = depth < 0;
+        // Each neighbor displaced along V[vi] direction (rigid-body pentamer)
+        const nDisp = nbrs.map(ni => V[ni].map((x,j) => x + c[j]*disp5));
 
-    // 5-fold pentagons (s5) — expand corners away from vertex (axis at center)
-    pts5.forEach(pt => {
-      if (s5 < 0.015) return;
-      const sc = 1 + s5 * 1.1;
-      const c = pt.pos, cr = applyM(M, c);
-      const exp = sortedNbr(pt.vi).map(ni => {
-        const v = V[ni];
-        return [c[0]+(v[0]-c[0])*sc, c[1]+(v[1]-c[1])*sc, c[2]+(v[2]-c[2])*sc];
+        // Draw 5 triangular faces: center → nbr[j] → nbr[j+1]
+        for (let j=0; j<5; j++) {
+          const corners = [cDisp, nDisp[j], nDisp[(j+1)%5]];
+          const fill = faceShade(cDisp, energy, 30, 50, 75);
+          drawSubunit(corners, fill, '#9B72CF', s5, front);
+        }
+        // Pentagon ring outline (axis perimeter)
+        const pnbrs = nDisp.map(v => pr(v));
+        ctx.save();
+        ctx.globalAlpha = front ? Math.min(1, s5*1.4) : 0.10;
+        ctx.beginPath();
+        pnbrs.forEach((p,j)=>{ if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        ctx.closePath();
+        ctx.strokeStyle='#9B72CF'; ctx.lineWidth=1.8+s5*2;
+        ctx.shadowColor='#9B72CF'; ctx.shadowBlur=8+s5*18;
+        ctx.stroke();
+        ctx.restore();
       });
-      drawExpanded(exp, cr[2], '#9B72CF', s5, 1.5);
-    });
+    }
 
-    // Axis-centre markers — always visible at base opacity, glow brighter when active
+    // ── 3-fold: 20 triangular faces float apart along their normals ────────
+    if (s3f > 0.005) {
+      const disp3 = s3f * 0.55;
+      const tris = pts3.map(pt => {
+        const c = pt.pos;                          // face centroid = 3-fold axis
+        const cDisp = c.map(x => x*(1+disp3));
+        const cr = applyM(M, cDisp);
+        return { pt, c, cDisp, depth: cr[2] };
+      }).sort((a,b) => a.depth-b.depth);
+
+      tris.forEach(({ pt, c, cDisp, depth }) => {
+        const [a,b,cv] = F[pt.fi];
+        const front = depth < 0;
+        // All 3 vertices displaced along face normal (= c direction)
+        const da = V[a].map((x,j) => x+c[j]*disp3);
+        const db = V[b].map((x,j) => x+c[j]*disp3);
+        const dc = V[cv].map((x,j) => x+c[j]*disp3);
+        const fill = faceShade(cDisp, energy, 20, 60, 50);
+        drawSubunit([da,db,dc], fill, '#3DAA6A', s3f, front);
+      });
+    }
+
+    // ── 2-fold: 30 rhombus pairs float apart along their edge-midpoint dir ─
+    if (s2 > 0.005) {
+      const disp2 = s2 * 0.55;
+      const rhos = pts2.map(pt => {
+        const c = pt.pos;                          // edge midpoint = 2-fold axis
+        const cDisp = c.map(x => x*(1+disp2));
+        const cr = applyM(M, cDisp);
+        return { pt, c, cDisp, depth: cr[2] };
+      }).sort((a,b) => a.depth-b.depth);
+
+      rhos.forEach(({ pt, c, cDisp, depth }) => {
+        const [ea,eb] = E[pt.ei];
+        const key = Math.min(ea,eb)+'-'+Math.max(ea,eb);
+        const faces = EF[key]; if (!faces||faces.length<2) return;
+        const fi0=faces[0].fi, fi1=faces[1].fi;
+        const fc0=FC[fi0], fc1=FC[fi1];
+        const front = depth < 0;
+        // Rhombus: V[ea], fc0, V[eb], fc1 — all displaced along edge-midpoint dir
+        const da  = V[ea].map((x,j) => x+c[j]*disp2);
+        const db  = V[eb].map((x,j) => x+c[j]*disp2);
+        const df0 = fc0.map((x,j) => x+c[j]*disp2);
+        const df1 = fc1.map((x,j) => x+c[j]*disp2);
+        const fill = faceShade(cDisp, energy, 55, 30, 30);
+        drawSubunit([da,df0,db,df1], fill, '#E8624A', s2, front);
+      });
+    }
+
+    // ── Axis-centre markers — always visible, glow when active ────────────
     [[pts2,'#E8624A',s2],[pts3,'#3DAA6A',s3f],[pts5,'#9B72CF',s5]].forEach(([pts,col,amp])=>{
       pts.forEach(pt=>{
-        const rz  = applyM(M, pt.pos)[2];
+        const rz = applyM(M, pt.pos)[2];
         const front = rz < 0;
-        const baseA = front ? 0.38 : 0.07;          // always shown
-        const alpha = Math.min(baseA + amp * (front ? 1.0 : 0.12), 1);
-        const pp  = pr(pt.pos);
+        const baseA = front ? 0.35 : 0.06;
+        const alpha = Math.min(baseA + amp*(front?1.0:0.10), 1);
+        const pp = pr(pt.pos);
         ctx.save();
         ctx.globalAlpha = alpha;
-        if (amp > 0.08) { ctx.shadowColor = col; ctx.shadowBlur = 6 + amp * 20; }
+        if (amp>0.08) { ctx.shadowColor=col; ctx.shadowBlur=5+amp*18; }
         ctx.beginPath();
-        ctx.arc(pp[0], pp[1], 2.5 + amp * 6, 0, Math.PI * 2);
-        ctx.fillStyle = col;
-        ctx.fill();
+        ctx.arc(pp[0], pp[1], 2.5+amp*5, 0, Math.PI*2);
+        ctx.fillStyle=col; ctx.fill();
         ctx.restore();
       });
     });

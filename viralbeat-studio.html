@@ -766,9 +766,11 @@ async function initMolstar(containerId) {
 
 async function loadStructureInMolstar(pdbId) {
   if (!mainViewer) return;
-  symmetryAxesData = null; // clear stale data while loading
+  symmetryAxesData = null;
   redrawAxisCanvas();
   try {
+    // Remove any previously loaded structure before adding the new one
+    await mainViewer.plugin.clear();
     await mainViewer.loadStructureFromUrl(
       `https://files.rcsb.org/download/${pdbId}.cif`,
       'mmcif'
@@ -776,9 +778,8 @@ async function loadStructureInMolstar(pdbId) {
   } catch(e) {
     console.warn('Structure load failed:', e);
   }
-  // Fetch real symmetry axis coordinates from RCSB after structure is loaded
   symmetryAxesData = await fetchSymmetryAxes(pdbId);
-  subscribeAxisCanvas(); // (re)subscribe so axes draw on every render frame
+  subscribeAxisCanvas();
   redrawAxisCanvas();
 }
 

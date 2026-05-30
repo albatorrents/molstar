@@ -913,6 +913,12 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
           <div id="stage-dance-viewer-slot" style="width:100%;height:100%;"></div>
           <div class="dance-viewer-label" id="dance-virus-name"></div>
 
+          <!-- Axis glow ring — coloured radial halo driven by active fold axis -->
+          <canvas id="glow-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:13;"></canvas>
+
+          <!-- Live frequency spectrum — coloured by fold-axis assignment -->
+          <canvas id="freq-canvas" style="position:absolute;bottom:0;left:0;width:100%;height:72px;pointer-events:none;z-index:16;"></canvas>
+
           <!-- Symmetry-axis icosahedron guide — top-right overlay -->
           <div class="dance-ico-corner">
             <div class="dance-ico-title">SYMMETRY GUIDE</div>
@@ -3034,6 +3040,10 @@ function danceLoop() {
   // Animate the Mol* capsid via CSS transforms based on movement assignments
   applyMolstarDanceEffect(danceSmooth, appState.movements);
 
+  // Draw audio-reactive overlays
+  drawFreqViz();
+  drawAxisGlow();
+
   danceAnimId = requestAnimationFrame(danceLoop);
 }
 
@@ -3073,6 +3083,104 @@ function buildDanceAssignMeters() {
         </div>
         <div class="dance-meter-track"><div id="meter-${key}" class="dance-meter-fill" style="background:${color};box-shadow:0 0 5px ${color};"></div></div>
       </div>`;
+  });
+}
+
+// ── Frequency spectrum visualizer ──────────────────────────────────────
+// Draws 96 coloured vertical bars at the bottom of the dance viewer.
+// Each bar is coloured by which fold-axis movement handles that frequency range.
+function drawFreqViz() {
+  const fc = document.getElementById('freq-canvas');
+  if (!fc) return;
+  const W = fc.offsetWidth, H = fc.offsetHeight;
+  if (!W || !H) return;
+  if (fc.width !== W || fc.height !== H) { fc.width = W; fc.height = H; }
+  const ctx = fc.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Dark-to-transparent background at the bottom edge
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, 'rgba(8,13,26,0)');
+  bg.addColorStop(1, 'rgba(8,13,26,0.84)');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  if (!danceAnalyser) return;
+
+  const bufLen = danceAnalyser.frequencyBinCount;
+  const data   = new Uint8Array(bufLen);
+  danceAnalyser.getByteFrequencyData(data);
+
+  const BARS = 96, bW = W / BARS;
+  const mvs  = appState.movements;
+  const MV_RGB = {
+    open5fold:[155,114,207], open3fold:[61,170,106],
+    open2fold:[232,98,74],   wiggle:[232,196,74],
+    pulse:[74,181,232],      spin:[135,206,235],
+  };
+  const bassEnd   = Math.floor(bufLen * 0.05);
+  const midEnd    = Math.floor(bufLen * 0.30);
+  const trebleEnd = Math.floor(bufLen * 0.70);
+
+  for (let i = 0; i < BARS; i++) {
+    const bin  = Math.floor(i / BARS * bufLen * 0.80);
+    const val  = data[bin] / 255;
+    if (val < 0.015) continue;
+    const band = bin < bassEnd ? 'bass' : bin < midEnd ? 'mid' : bin < trebleEnd ? 'treble' : 'presence';
+    const [r,g,b] = MV_RGB[mvs?.[band]?.movement] || [110,150,195];
+    const barH = val * H, x = i * bW;
+
+    const grad = ctx.createLinearGradient(x, H - barH, x, H);
+    grad.addColorStop(0,    `rgba(${r},${g},${b},${(0.85+val*0.15).toFixed(2)})`);
+    grad.addColorStop(0.65, `rgba(${r},${g},${b},0.45)`);
+    grad.addColorStop(1,    `rgba(${r},${g},${b},0.06)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x + 0.5, H - barH, bW - 1, barH);
+
+    // Bright top cap for loud bars
+    if (val > 0.12) {
+      ctx.fillStyle = `rgba(${Math.min(255,r+90)},${Math.min(255,g+90)},${Math.min(255,b+90)},${(val*0.9).toFixed(2)})`;
+      ctx.fillRect(x + 0.5, H - barH - 2, bW - 1, 2);
+    }
+  }
+}
+
+// ── Axis glow ring ──────────────────────────────────────────────────────
+// Paints a soft radial halo around the capsid in the colour of whichever
+// fold axes are currently active, fading in/out with the music amplitude.
+function drawAxisGlow() {
+  const gc = document.getElementById('glow-canvas');
+  if (!gc) return;
+  const W = gc.offsetWidth, H = gc.offsetHeight;
+  if (!W || !H) return;
+  if (gc.width !== W || gc.height !== H) { gc.width = W; gc.height = H; }
+  const ctx = gc.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const mvs = appState.movements;
+  if (!mvs) return;
+  const sm  = danceSmooth;
+  const bmap = { bass:sm.bass, mid:sm.mid, treble:sm.treble, presence:sm.presence, beat:sm.beat };
+
+  let a5=0, a3=0, a2=0;
+  for (const [key,cfg] of Object.entries(mvs)) {
+    if (!cfg || cfg.movement==='none') continue;
+    const v = (bmap[key]||0) * (cfg.intensity/10);
+    if (v < 0.02) continue;
+    if (cfg.movement==='open5fold') a5 = Math.max(a5, v);
+    if (cfg.movement==='open3fold') a3 = Math.max(a3, v);
+    if (cfg.movement==='open2fold') a2 = Math.max(a2, v);
+  }
+
+  const cx=W/2, cy=H/2, r0=Math.min(W, H)*0.36;
+  [[a5,[155,114,207]],[a3,[61,170,106]],[a2,[232,98,74]]].forEach(([amp,[r,g,b]]) => {
+    if (amp < 0.03) return;
+    const grd = ctx.createRadialGradient(cx, cy, r0*0.60, cx, cy, r0*1.55);
+    grd.addColorStop(0,    `rgba(${r},${g},${b},0)`);
+    grd.addColorStop(0.50, `rgba(${r},${g},${b},${(amp*0.08).toFixed(3)})`);
+    grd.addColorStop(0.80, `rgba(${r},${g},${b},${(amp*0.30).toFixed(3)})`);
+    grd.addColorStop(1,    `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
   });
 }
 
@@ -3140,11 +3248,32 @@ function applyMolstarDanceEffect(smooth, movements) {
     camZoomIn = energy * 0.20;
   }
 
+  // Axis-colour drop-shadow: glows in the colour of the dominant active axis
+  let glowColor = null, glowAmp = 0;
+  if (movements) {
+    const bmap2 = { bass: smooth.bass, mid: smooth.mid, treble: smooth.treble,
+                    presence: smooth.presence, beat: smooth.beat };
+    let a5=0, a3=0, a2=0;
+    for (const [key,cfg] of Object.entries(movements)) {
+      if (!cfg||cfg.movement==='none') continue;
+      const v = (bmap2[key]||0)*(cfg.intensity/10);
+      if (cfg.movement==='open5fold') a5=Math.max(a5,v);
+      if (cfg.movement==='open3fold') a3=Math.max(a3,v);
+      if (cfg.movement==='open2fold') a2=Math.max(a2,v);
+    }
+    if (a5 >= a3 && a5 >= a2 && a5 > 0.04) { glowColor='155,114,207'; glowAmp=a5; }
+    else if (a3 >= a2 && a3 > 0.04)         { glowColor='61,170,106';  glowAmp=a3; }
+    else if (a2 > 0.04)                      { glowColor='232,98,74';   glowAmp=a2; }
+  }
+  const shadowStr = glowColor
+    ? `drop-shadow(0 0 ${Math.round(8+glowAmp*40)}px rgba(${glowColor},${(glowAmp*0.75).toFixed(2)}))`
+    : '';
+
   // 1. CSS transform on viewer container (instant for wiggle, brief transition otherwise)
   const hasJitter = (tx !== 0 || ty !== 0 || rot !== 0);
   wrap.style.transition = hasJitter ? 'none' : 'transform 0.05s linear, filter 0.05s linear';
   wrap.style.transform  = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${cssScale.toFixed(3)})`;
-  wrap.style.filter     = `brightness(${bright.toFixed(2)}) saturate(${sat.toFixed(2)})`;
+  wrap.style.filter     = `brightness(${bright.toFixed(2)}) saturate(${sat.toFixed(2)}) ${shadowStr}`;
 
   // 2. Mol* spin speed (always active — speed scales with spin assignment)
   try {

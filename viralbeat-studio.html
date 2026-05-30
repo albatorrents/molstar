@@ -2689,91 +2689,54 @@ function showToast(msg) {
       ctx.restore();
     }
 
-    // ── 5-fold: 12 non-overlapping dodecahedron pentagons open at 5-fold axes ─
-    // Each pentagon = 5 adjacent face-centroids around the vertex, sorted CCW.
-    // These 12 pentagons are the dual of the icosahedron and tile with no overlap.
-    if (s5 > 0.005) {
-      const disp5 = s5 * 0.60;
+    // ── One unified dodecahedron — all fold types open the same 12 pentagons ─
+    // The combined amplitude drives a single dodecahedron opening.
+    // Triangular gaps (3-fold) and rhombic gaps (2-fold) appear naturally
+    // between the separating pentagon faces — no separate floating shapes.
+    const openAmp = Math.max(s5, s3f * 0.90, s2 * 0.80);
+
+    if (openAmp > 0.005) {
+      const disp = openAmp * 0.60;
+
+      // Blended glow colour: weighted mix of each fold's colour
+      const tot = s5 + s3f + s2 + 0.001;
+      const gc = [
+        Math.round((0x9B*s5 + 0x3D*s3f + 0xE8*s2) / tot),
+        Math.round((0x72*s5 + 0xAA*s3f + 0x62*s2) / tot),
+        Math.round((0xCF*s5 + 0x6A*s3f + 0x4A*s2) / tot),
+      ];
+      const glowColor = `rgb(${gc[0]},${gc[1]},${gc[2]})`;
+
       const pents = pts5.map(pt => {
         const c = pt.pos;
-        const cDisp = c.map(x => x*(1+disp5));
+        const cDisp = c.map(x => x*(1+disp));
         const cr = applyM(M, cDisp);
         return { c, cDisp, depth: cr[2], penta: dodecPenta[pt.vi] };
-      }).sort((a,b) => a.depth-b.depth);
+      }).sort((a,b) => a.depth - b.depth);   // back-to-front
 
       pents.forEach(({ c, cDisp, depth, penta }) => {
         const front = depth < 0;
-        const alpha = front ? Math.min(0.93, s5*1.5) : Math.min(0.10, s5*0.15);
+        const alpha = front ? Math.min(0.93, openAmp*1.5) : Math.min(0.10, openAmp*0.14);
         if (alpha < 0.01) return;
 
-        // Displace each face-centroid along the vertex axis direction
-        const dfc = penta.map(fc => fc.map((x,j) => x + c[j]*disp5));
+        // Displace each dodecahedron vertex (= face centroid) along the pentagon axis
+        const dfc  = penta.map(fc => fc.map((x,j) => x + c[j]*disp));
         const pts2d = dfc.map(p => pr(p));
 
         ctx.save();
         ctx.globalAlpha = alpha;
 
-        // Solid fill with lighting
+        // Solid filled pentagon
         ctx.beginPath();
-        pts2d.forEach((p,j)=>{ if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        pts2d.forEach((p,j) => { if(j===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
         ctx.closePath();
-        const fill = faceShade(cDisp, energy, 28, 45, 72);
-        ctx.fillStyle = fill; ctx.fill();
+        ctx.fillStyle = faceShade(cDisp, energy, 24, 42, 68); ctx.fill();
 
-        // Glowing pentagon outline
-        ctx.strokeStyle='#9B72CF'; ctx.lineWidth=1.6+s5*2.2; ctx.lineJoin='round';
-        if (front) { ctx.shadowColor='#9B72CF'; ctx.shadowBlur=7+s5*18; }
+        // Glowing outline — colour blended across active fold types
+        ctx.strokeStyle = glowColor; ctx.lineWidth = 1.6 + openAmp*2.4; ctx.lineJoin = 'round';
+        if (front) { ctx.shadowColor = glowColor; ctx.shadowBlur = 7 + openAmp*20; }
         ctx.stroke();
         ctx.restore();
-      });
-    }
-
-    // ── 3-fold: 20 triangular faces float apart along their normals ────────
-    if (s3f > 0.005) {
-      const disp3 = s3f * 0.55;
-      const tris = pts3.map(pt => {
-        const c = pt.pos;                          // face centroid = 3-fold axis
-        const cDisp = c.map(x => x*(1+disp3));
-        const cr = applyM(M, cDisp);
-        return { pt, c, cDisp, depth: cr[2] };
-      }).sort((a,b) => a.depth-b.depth);
-
-      tris.forEach(({ pt, c, cDisp, depth }) => {
-        const [a,b,cv] = F[pt.fi];
-        const front = depth < 0;
-        // All 3 vertices displaced along face normal (= c direction)
-        const da = V[a].map((x,j) => x+c[j]*disp3);
-        const db = V[b].map((x,j) => x+c[j]*disp3);
-        const dc = V[cv].map((x,j) => x+c[j]*disp3);
-        const fill = faceShade(cDisp, energy, 20, 60, 50);
-        drawSubunit([da,db,dc], fill, '#3DAA6A', s3f, front);
-      });
-    }
-
-    // ── 2-fold: 30 rhombus pairs float apart along their edge-midpoint dir ─
-    if (s2 > 0.005) {
-      const disp2 = s2 * 0.55;
-      const rhos = pts2.map(pt => {
-        const c = pt.pos;                          // edge midpoint = 2-fold axis
-        const cDisp = c.map(x => x*(1+disp2));
-        const cr = applyM(M, cDisp);
-        return { pt, c, cDisp, depth: cr[2] };
-      }).sort((a,b) => a.depth-b.depth);
-
-      rhos.forEach(({ pt, c, cDisp, depth }) => {
-        const [ea,eb] = E[pt.ei];
-        const key = Math.min(ea,eb)+'-'+Math.max(ea,eb);
-        const faces = EF[key]; if (!faces||faces.length<2) return;
-        const fi0=faces[0].fi, fi1=faces[1].fi;
-        const fc0=FC[fi0], fc1=FC[fi1];
-        const front = depth < 0;
-        // Rhombus: V[ea], fc0, V[eb], fc1 — all displaced along edge-midpoint dir
-        const da  = V[ea].map((x,j) => x+c[j]*disp2);
-        const db  = V[eb].map((x,j) => x+c[j]*disp2);
-        const df0 = fc0.map((x,j) => x+c[j]*disp2);
-        const df1 = fc1.map((x,j) => x+c[j]*disp2);
-        const fill = faceShade(cDisp, energy, 55, 30, 30);
-        drawSubunit([da,df0,db,df1], fill, '#E8624A', s2, front);
       });
     }
 

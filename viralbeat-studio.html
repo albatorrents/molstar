@@ -115,12 +115,14 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 .btn-lavender:hover{background:#a892c4;}
 
 /* STAGE 2 */
-.youtube-frame{width:100%;height:500px;border-radius:12px;border:none;}
 .waveform-placeholder{display:flex;align-items:flex-end;gap:4px;height:60px;padding:8px;background:var(--cream-dark);border-radius:8px;}
 .wave-bar{width:8px;border-radius:4px;background:var(--sage);animation:wavePulse 1s ease-in-out infinite;}
 @keyframes wavePulse{0%,100%{transform:scaleY(0.3);opacity:.5;}50%{transform:scaleY(1);opacity:1;}}
 .audio-controls{display:flex;align-items:center;gap:12px;padding:12px;background:var(--cream-dark);border-radius:10px;}
 .scrubber{flex:1;accent-color:var(--sage-dark);}
+.meta-chip{padding:7px 14px;border-radius:20px;border:1.5px solid var(--sage-light);background:white;color:var(--text-mid);font-family:'Lora',serif;font-size:0.82rem;cursor:pointer;transition:all .15s;}
+.meta-chip:hover{border-color:var(--sage);color:var(--text);}
+.meta-chip.selected{background:var(--sage);border-color:var(--sage-dark);color:white;font-weight:600;}
 .file-input-wrap{position:relative;display:inline-block;}
 .file-input-wrap input[type=file]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
 .file-input-label{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--lavender-light);border:2px dashed var(--lavender);border-radius:10px;cursor:pointer;color:var(--text-mid);font-family:'Lora',serif;font-size:0.875rem;}
@@ -653,16 +655,15 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
     <div>
       <div class="panel mb-12">
         <div class="section-title mb-8">Find Music Online</div>
-        <p class="text-sm text-light mb-12">Convert a YouTube URL to MP3, then upload it below.</p>
-        <div id="iframe-container" style="position:relative;">
-          <iframe class="youtube-frame" src="https://mp3cow.net/" title="Music finder" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" onerror="showIframeFallback()" onload="checkIframeLoad(this)"></iframe>
-          <div id="iframe-fallback" style="display:none;background:var(--cream-dark);border-radius:10px;padding:28px 20px;text-align:center;border:2px dashed var(--text-light);">
-            <div style="font-size:1.8rem;margin-bottom:8px;">🎵</div>
-            <div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:8px;color:var(--text);">Open MP3 Converter</div>
-            <p style="font-size:0.85rem;color:var(--text-light);margin-bottom:16px;">The converter can't load in an iframe (site policy). Open it in a new tab, download your MP3, then upload it here.</p>
-            <a href="https://mp3cow.net/" target="_blank" rel="noopener" style="display:inline-block;background:var(--sage);color:white;padding:10px 22px;border-radius:20px;font-family:'Lora',serif;font-size:0.9rem;text-decoration:none;font-weight:600;">Open mp3cow.net ↗</a>
-          </div>
+        <p class="text-sm text-light mb-10">Paste a YouTube URL and click <strong>Convert</strong> — mp3cow.net will open with your video ready to convert.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input type="text" id="yt-url-input"
+            placeholder="https://www.youtube.com/watch?v=…"
+            style="flex:1;padding:10px 14px;border:1.5px solid var(--sage-light);border-radius:10px;font-family:'Lora',serif;font-size:0.88rem;color:var(--text);background:white;outline:none;min-width:0;"
+            onkeydown="if(event.key==='Enter')convertYouTubeUrl()">
+          <button id="yt-convert-btn" class="btn btn-primary" onclick="convertYouTubeUrl()" style="white-space:nowrap;flex-shrink:0;">Convert →</button>
         </div>
+        <div id="yt-status" style="display:none;font-size:0.82rem;padding:9px 12px;border-radius:8px;line-height:1.5;"></div>
       </div>
     </div>
     <div>
@@ -697,15 +698,11 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
         </div>
       </div>
 
-      <div class="panel mb-12">
-        <div class="section-title mb-8">Capsid Preview</div>
-        <div class="viewer-slot" id="stage-2-viewer-slot" style="height:180px;"></div>
-        <p class="text-sm text-light" style="margin-top:8px;">Your capsid is spinning — visualizing icosahedral symmetry.</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+        <button class="btn btn-secondary" onclick="goToStage(1)">← Back to Capsid</button>
+        <button class="btn btn-primary" id="use-track-btn" onclick="goToStage(3)" disabled>Use This Track →</button>
       </div>
-
-      <button class="btn btn-primary" id="use-track-btn" onclick="goToStage(3)" disabled>Use This Track →</button>
-      <p class="text-sm text-light" style="margin-top:8px;" id="track-status-msg">Upload an audio file to continue, or click below to skip.</p>
-      <button class="btn btn-secondary" style="margin-top:8px;" onclick="skipAudio()">Skip Audio →</button>
+      <p class="text-sm text-light" style="margin-top:8px;" id="track-status-msg">Upload an audio file to continue.</p>
     </div>
   </div>
 </div>
@@ -1082,6 +1079,8 @@ const appState = {
   audioFile: null,
   trackName: '',
   audioDuration: 0,
+  musicMeta: null,
+  audioBoosts: { bass: 1, mid: 1, treble: 1 },
   mappings: {
     fold2: { subunits: 30, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Piano', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' },
     fold3: { subunits: 20, x: 0, y: 0, z: 0, beat: 'Quarter Note', instrument: 'Strings', rhythm: 'Steady Pulse', dynamics: 'mf', justification: '' },
@@ -1246,26 +1245,6 @@ function copyPdb() {
 // ============================================================
 // STAGE 2 — MUSIC IMPORT
 // ============================================================
-function showIframeFallback() {
-  document.getElementById('iframe-fallback').style.display = 'block';
-  document.querySelector('.youtube-frame').style.display = 'none';
-}
-
-function checkIframeLoad(iframe) {
-  // Detect X-Frame-Options block: iframe loads but is about:blank or cross-origin blocked
-  setTimeout(() => {
-    try {
-      // If we can access contentDocument, it loaded fine
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!doc || doc.URL === 'about:blank' || doc.body?.innerHTML === '') {
-        showIframeFallback();
-      }
-    } catch(e) {
-      // Cross-origin block means iframe loaded but we can't read it — it may be working
-      // Don't show fallback in this case; the iframe is probably live
-    }
-  }, 3000);
-}
 
 function handleAudioFile(input) {
   const file = input.files[0];
@@ -1288,6 +1267,7 @@ function handleAudioFile(input) {
   document.getElementById('use-track-btn').disabled = false;
   document.getElementById('track-status-msg').textContent = `"${appState.trackName}" loaded.`;
   saveSession();
+  showMusicMetaModal();
 }
 
 function formatTime(s) {
@@ -1315,9 +1295,102 @@ function updateScrubber() {
   document.getElementById('audio-time').textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
 }
 
-function skipAudio() {
-  appState.trackName = 'No track';
-  goToStage(3);
+// ============================================================
+// MUSIC METADATA MODAL
+// ============================================================
+const MUSIC_META_OPTIONS = {
+  genre:       ['Pop', 'Rock', 'Electronic', 'Hip-Hop', 'Jazz', 'Classical', 'R&B', 'Latin', 'Reggaeton', 'Other'],
+  tempo:       ['Slow  < 80 BPM', 'Medium  80–120 BPM', 'Fast  > 120 BPM'],
+  energy:      ['Low', 'Medium', 'High'],
+  instruments: ['Bass guitar', 'Drums / Percussion', 'Synth / Keys', 'Electric guitar', 'Vocals', 'Strings', 'Brass', 'Piano']
+};
+
+function initMusicMetaChips() {
+  const make = (label, group, multi) => {
+    const b = document.createElement('button');
+    b.className = 'meta-chip'; b.textContent = label;
+    b.dataset.group = group; b.dataset.value = label;
+    b.onclick = () => {
+      if (!multi) b.closest('.meta-chip-row').querySelectorAll('.meta-chip').forEach(c => c.classList.remove('selected'));
+      b.classList.toggle('selected');
+    };
+    return b;
+  };
+  [['meta-genre-chips','genre',false],['meta-tempo-chips','tempo',false],
+   ['meta-energy-chips','energy',false],['meta-instr-chips','instruments',true]].forEach(([id,group,multi]) => {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    MUSIC_META_OPTIONS[group].forEach(v => el.appendChild(make(v, group, multi)));
+  });
+}
+
+function showMusicMetaModal() {
+  initMusicMetaChips();
+  document.getElementById('music-meta-overlay').style.display = 'flex';
+}
+
+function closeMusicMeta() {
+  document.getElementById('music-meta-overlay').style.display = 'none';
+}
+
+function saveMusicMeta() {
+  const g = (id) => [...document.querySelectorAll('#' + id + ' .meta-chip.selected')].map(c => c.dataset.value);
+  const genre  = g('meta-genre-chips')[0]  || null;
+  const tempo  = g('meta-tempo-chips')[0]  || null;
+  const energy = g('meta-energy-chips')[0] || null;
+  const instruments = g('meta-instr-chips');
+  appState.musicMeta = { genre, tempo, energy, instruments };
+
+  // Compute sensitivity boosts for the dance animation
+  let bass = 1, mid = 1, treble = 1;
+  if (energy === 'High')   { bass *= 1.3; mid *= 1.2; treble *= 1.2; }
+  if (energy === 'Low')    { bass *= 0.7; mid *= 0.8; treble *= 0.8; }
+  if (tempo && tempo.startsWith('Fast'))   bass   *= 1.2;
+  if (tempo && tempo.startsWith('Slow'))   treble *= 1.3;
+  if (instruments.some(i => i.startsWith('Bass')))    bass   *= 1.25;
+  if (instruments.some(i => i.startsWith('Drums')))   bass   *= 1.15;
+  if (instruments.some(i => i.startsWith('Strings') || i.startsWith('Brass'))) treble *= 1.2;
+  if (instruments.some(i => i.startsWith('Synth') || i.startsWith('Piano')))   mid    *= 1.2;
+  const clamp = v => Math.min(Math.max(v, 0.5), 2.5);
+  appState.audioBoosts = { bass: clamp(bass), mid: clamp(mid), treble: clamp(treble) };
+
+  closeMusicMeta();
+  showToast('Track profile saved — capsid animation tuned!');
+}
+
+function convertYouTubeUrl() {
+  const input = document.getElementById('yt-url-input');
+  const statusEl = document.getElementById('yt-status');
+  const url = input.value.trim();
+  if (!url) { showToast('Paste a YouTube URL first'); return; }
+
+  const setStatus = (html, bg, color) => {
+    statusEl.style.display = 'block';
+    statusEl.style.background = bg; statusEl.style.color = color;
+    statusEl.innerHTML = html;
+  };
+
+  // Open mp3cow.net in a popup with the URL pre-filled in the search field
+  const popup = window.open(
+    'https://mp3cow.net/?url=' + encodeURIComponent(url),
+    'mp3cow_converter',
+    'width=960,height=660,scrollbars=yes,resizable=yes'
+  );
+
+  if (!popup || popup.closed) {
+    // Pop-up blocked
+    setStatus(
+      '⚠️ Pop-up blocked by your browser. <a href="https://mp3cow.net/?url=' + encodeURIComponent(url) +
+      '" target="_blank" rel="noopener" style="color:inherit;font-weight:700;text-decoration:underline;">Click here to open mp3cow.net ↗</a>' +
+      ' — convert the video there, download the MP3, then upload it on the right.',
+      '#fff3e0', '#b45309'
+    );
+  } else {
+    setStatus(
+      '🎵 <strong>mp3cow.net</strong> opened in a new window. Convert the video there, download the MP3 file, then upload it using the button on the right.',
+      'var(--cream-dark)', 'var(--text-mid)'
+    );
+  }
 }
 
 // ============================================================
@@ -1761,7 +1834,7 @@ function showStage(n) {
   if (appState.currentStage === 'dance') stopDanceStage();
 
   // Move viewer to appropriate slot
-  const slotMap = { 0: null, 1: 'stage-1-viewer-slot', 2: 'stage-2-viewer-slot', 3: 'stage-3-viewer-slot', dance: 'stage-dance-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
+  const slotMap = { 0: null, 1: 'stage-1-viewer-slot', 2: null, 3: 'stage-3-viewer-slot', dance: 'stage-dance-viewer-slot', 4: null, 5: 'stage-5-viewer-slot' };
   const slot = slotMap[n];
   if (slot) {
     moveViewerToSlot(slot);
@@ -2515,10 +2588,15 @@ function danceGetBands() {
     for (let i = s; i < e; i++) sum += data[i];
     return sum / Math.max(1, e - s) / 255;
   };
-  const bassEnd   = Math.max(1, Math.floor(bins * 0.05));  // 0–~220 Hz
-  const midEnd    = Math.max(bassEnd+1, Math.floor(bins * 0.30)); // up to ~2.6 kHz
-  const trebleEnd = Math.max(midEnd+1, Math.floor(bins * 0.70)); // up to ~6 kHz
-  return { bass: avg(0, bassEnd), mid: avg(bassEnd, midEnd), treble: avg(midEnd, trebleEnd) };
+  const bassEnd   = Math.max(1, Math.floor(bins * 0.05));
+  const midEnd    = Math.max(bassEnd+1, Math.floor(bins * 0.30));
+  const trebleEnd = Math.max(midEnd+1, Math.floor(bins * 0.70));
+  const b = appState.audioBoosts;
+  return {
+    bass:   Math.min(avg(0, bassEnd)        * b.bass,   1),
+    mid:    Math.min(avg(bassEnd, midEnd)   * b.mid,    1),
+    treble: Math.min(avg(midEnd, trebleEnd) * b.treble, 1)
+  };
 }
 
 function danceLoop() {
@@ -2645,5 +2723,38 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 </script>
+
+<!-- =================== MUSIC METADATA MODAL =================== -->
+<div id="music-meta-overlay" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.38);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:36px 40px;max-width:540px;width:92%;box-shadow:0 12px 50px rgba(0,0,0,0.22);position:relative;max-height:90vh;overflow-y:auto;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.45rem;font-weight:800;color:var(--sage-dark);margin-bottom:6px;">Describe Your Track</div>
+    <p style="font-size:0.87rem;color:var(--text-mid);margin-bottom:26px;line-height:1.65;">This tunes the capsid animation to your music — bass-heavy tracks drive the 2-fold rhombuses, mid-range drives the 3-fold triangles, and treble drives the 5-fold pentagons.</p>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-weight:700;font-size:0.82rem;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Genre</div>
+      <div id="meta-genre-chips" class="meta-chip-row" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-weight:700;font-size:0.82rem;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Tempo</div>
+      <div id="meta-tempo-chips" class="meta-chip-row" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-weight:700;font-size:0.82rem;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Energy Level</div>
+      <div id="meta-energy-chips" class="meta-chip-row" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+    </div>
+
+    <div style="margin-bottom:28px;">
+      <div style="font-weight:700;font-size:0.82rem;color:var(--text);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Dominant Instruments <span style="font-weight:400;text-transform:none;opacity:.6;font-size:0.78rem;">select all that apply</span></div>
+      <div id="meta-instr-chips" class="meta-chip-row" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeMusicMeta()">Skip for now</button>
+      <button class="btn btn-primary" onclick="saveMusicMeta()">Save Profile →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

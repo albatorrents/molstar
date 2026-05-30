@@ -1575,9 +1575,9 @@ const BAND_DEFS = [
   { key:'treble',      icon:'✨', name:'Treble',         freq:'2–8k Hz',       default:'open5fold', color:'#9B72CF' },
   { key:'presence',    icon:'🎤', name:'Vocals / Pres.', freq:'1–5k Hz',       default:'wiggle',    color:'#E8C44A' },
   { key:'beat',        icon:'🥁', name:'Beat / Kick',    freq:'onset detect',  default:'pulse',     color:'#4AB5E8' },
-  { key:'piano',       icon:'🎹', name:'Piano (soft)',   freq:'vol < 25 %',    default:'open3fold', color:'#7BAFD4' },
-  { key:'mezzoforte',  icon:'🎼', name:'Mezzoforte',     freq:'vol ≈ 30 %',    default:'wiggle',    color:'#D4A827' },
-  { key:'forte',       icon:'🔊', name:'Forte (loud)',   freq:'vol > 40 %',    default:'open5fold', color:'#C54444' },
+  { key:'piano',       icon:'🎹', name:'Piano (soft)',   freq:'vol < 15 %',    default:'open3fold', color:'#7BAFD4' },
+  { key:'mezzoforte',  icon:'🎼', name:'Mezzoforte',     freq:'vol < 25 %',    default:'wiggle',    color:'#D4A827' },
+  { key:'forte',       icon:'🔊', name:'Forte (loud)',   freq:'vol > 25 %',    default:'open5fold', color:'#C54444' },
 ];
 const MOVE_OPTIONS = [
   { value:'open2fold', label:'Open 2-fold axis (edges)' },
@@ -1799,9 +1799,9 @@ function s3GetBands() {
     treble:     Math.min(avg(Math.floor(bins*0.25),Math.floor(bins*0.65))    *b.treble,1),
     presence:   Math.min(avg(Math.floor(bins*0.06),Math.floor(bins*0.40))    *b.mid,   1),
     beat:       0,
-    piano:      Math.min(1, Math.max(0, (0.20 - oa) / 0.20)),
-    mezzoforte: Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.30) / 0.18)),
-    forte:      Math.min(1, Math.max(0, (oa - 0.38) / 0.25)),
+    piano:      Math.min(1, Math.max(0, (0.15 - oa) / 0.15)),
+    mezzoforte: Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)),
+    forte:      Math.min(1, Math.max(0, (oa - 0.25) / 0.25)),
   };
 }
 
@@ -3303,9 +3303,9 @@ function danceGetBands() {
     treble:     Math.min(avg(midEnd, trebleEnd)                  * b.treble, 1),
     presence:   Math.min(avg(Math.floor(bins*0.06), presenceEnd) * b.mid,    1),
     beat:       Math.min(beat, 1),
-    piano:      Math.min(1, Math.max(0, (0.20 - oa) / 0.20)),
-    mezzoforte: Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.30) / 0.18)),
-    forte:      Math.min(1, Math.max(0, (oa - 0.38) / 0.25)),
+    piano:      Math.min(1, Math.max(0, (0.15 - oa) / 0.15)),
+    mezzoforte: Math.min(1, Math.max(0, 1 - Math.abs(oa - 0.20) / 0.05)),
+    forte:      Math.min(1, Math.max(0, (oa - 0.25) / 0.25)),
   };
 }
 

@@ -2251,14 +2251,12 @@ function showToast(msg) {
   // Dodecahedron pentagons — dual of icosahedron.
   // For each vertex vi, the 5 adjacent face-centroids sorted CCW form a pentagon
   // that tiles the sphere perfectly with no overlap.  Used for 5-fold opening.
-  const dot3  = (a,b) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
-  const cross3b = (a,b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
   const dodecPenta = V.map((axis, vi) => {
     const adjFC = pts3.filter(p => F[p.fi].includes(vi)).map(p => p.pos);
     // Sort CCW around axis using atan2 in the plane perpendicular to axis
-    const ref = adjFC[0];
-    const tang = norm3(cross3b(axis, ref));   // tangent from axis to ref
-    const btan = cross3b(axis, tang);         // second tangent
+    const ref  = adjFC[0];
+    const tang = norm3(cross3(axis, ref));   // tangent: axis × ref
+    const btan = cross3(axis, tang);         // second tangent
     return adjFC.sort((a, b) =>
       Math.atan2(dot3(a, btan), dot3(a, tang)) -
       Math.atan2(dot3(b, btan), dot3(b, tang))

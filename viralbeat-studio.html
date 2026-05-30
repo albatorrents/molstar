@@ -275,7 +275,7 @@ h1,h2,h3,h4{font-family:'Playfair Display',serif;}
 .dance-legend-item{font-size:0.75rem;font-family:'Lora',serif;display:flex;align-items:center;gap:5px;}
 .dance-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
 .dance-sidebar{background:#0b1220;border-left:1px solid rgba(255,255,255,0.06);padding:16px 14px;display:flex;flex-direction:column;gap:14px;}
-.dance-viewer-wrap{position:relative;width:100%;height:100%;min-height:500px;overflow:hidden;transform-origin:center center;transition:transform .06s linear,filter .06s linear;}
+.dance-viewer-wrap{position:relative;width:100%;height:100%;min-height:500px;overflow:hidden;transform-origin:center center;}
 .dance-viewer-label{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:0.68rem;color:rgba(255,255,255,0.5);font-family:'Lora',serif;pointer-events:none;}
 .dance-meters{display:flex;flex-direction:column;gap:8px;}
 .dance-meter-row{display:flex;align-items:center;gap:8px;}
@@ -2748,6 +2748,20 @@ function initDanceStage() {
   // Build assignment-aware band meters
   buildDanceAssignMeters();
 
+  // Reset camera baseline + start slow base spin
+  appState.danceBaseRadius = null;
+  setTimeout(() => {
+    try {
+      const r = mainViewer?.plugin?.canvas3d?.camera?.state?.radius;
+      if (r) appState.danceBaseRadius = r;
+    } catch(e) {}
+    try {
+      mainViewer?.plugin?.canvas3d?.setProps({
+        trackball: { animate: { name: 'spin', params: { speed: 0.35 } } }
+      });
+    } catch(e) {}
+  }, 300);
+
   // Start animation loop (even without audio, the icosahedron spins)
   cancelAnimationFrame(danceAnimId);
   danceLoop();
@@ -2834,7 +2848,11 @@ function stopDanceStage() {
   const audioEl = document.getElementById('audio-el');
   if (audioEl && danceIsPlaying) { audioEl.pause(); danceIsPlaying = false; }
   const vw = document.getElementById('dance-viewer-wrap');
-  if (vw) { vw.style.filter = ''; vw.style.transform = ''; }
+  if (vw) { vw.style.filter = ''; vw.style.transform = ''; vw.style.transition = ''; }
+  // Stop spin + reset camera
+  try { mainViewer?.plugin?.canvas3d?.setProps({ trackball: { animate: { name: 'off', params: {} } } }); } catch(e) {}
+  try { mainViewer?.plugin?.canvas3d?.requestCameraReset(); } catch(e) {}
+  appState.danceBaseRadius = null;
 }
 
 function buildDanceAssignMeters() {
@@ -2865,39 +2883,93 @@ function buildDanceAssignMeters() {
 
 function applyMolstarDanceEffect(smooth, movements) {
   const wrap = document.getElementById('dance-viewer-wrap');
+  const c3d  = mainViewer?.plugin?.canvas3d;
   if (!wrap) return;
-  let sx = 1, sy = 1, tx = 0, ty = 0, bright = 0.85, sat = 1;
+
+  // Accumulators
+  let cssScale = 1, tx = 0, ty = 0, rot = 0;
+  let bright = 0.75, sat = 1;
+  let camZoomIn = 0;   // positive = zoom in (capsid looks bigger = "opening")
+  let spinSpeed = 0.35; // base slow spin always on
+
   if (movements) {
-    const bmap = { bass: smooth.bass, mid: smooth.mid, treble: smooth.treble, presence: smooth.presence, beat: smooth.beat };
+    const bmap = { bass: smooth.bass, mid: smooth.mid, treble: smooth.treble,
+                   presence: smooth.presence, beat: smooth.beat };
     for (const [key, cfg] of Object.entries(movements)) {
       if (!cfg || cfg.movement === 'none') continue;
       const v = (bmap[key] || 0) * (cfg.intensity / 10);
+      if (v < 0.01) continue;
+
       switch (cfg.movement) {
-        case 'open2fold':  // rhombic edges breathe — slight horizontal stretch + brightness
-          sx = Math.max(sx, 1 + v * 0.10); sy = Math.max(sy, 1 + v * 0.05);
-          bright = Math.max(bright, 0.85 + v * 0.55); break;
-        case 'open3fold':  // triangular faces bloom — uniform scale + saturation
-          sx = Math.max(sx, 1 + v * 0.09); sy = Math.max(sy, 1 + v * 0.09);
-          sat = Math.max(sat, 1 + v * 0.65); break;
-        case 'open5fold':  // pentagonal vertices flare — strong scale + glow
-          sx = Math.max(sx, 1 + v * 0.16); sy = Math.max(sy, 1 + v * 0.16);
-          bright = Math.max(bright, 0.85 + v * 0.80); sat = Math.max(sat, 1 + v * 1.0); break;
-        case 'wiggle':     // micro-shake
-          tx += (Math.random() - 0.5) * v * 20; ty += (Math.random() - 0.5) * v * 14; break;
-        case 'pulse':      // whole capsid breathes
-          const p = 1 + v * 0.20;
-          sx = Math.max(sx, p); sy = Math.max(sy, p);
-          bright = Math.max(bright, 0.85 + v * 0.40); break;
-        case 'spin':       // add hue warmth
-          sat = Math.max(sat, 1 + v * 0.5); break;
+        case 'open5fold':
+          // Pentagonal vertices flare — capsid expands strongly, strong glow
+          cssScale = Math.max(cssScale, 1 + v * 0.40);
+          camZoomIn = Math.max(camZoomIn, v * 0.38);
+          bright    = Math.max(bright,    0.75 + v * 1.10);
+          sat       = Math.max(sat,       1    + v * 1.50);
+          break;
+        case 'open3fold':
+          // Triangular faces bloom — moderate expansion + warm colour
+          cssScale = Math.max(cssScale, 1 + v * 0.28);
+          camZoomIn = Math.max(camZoomIn, v * 0.25);
+          bright    = Math.max(bright,    0.75 + v * 0.75);
+          sat       = Math.max(sat,       1    + v * 1.00);
+          break;
+        case 'open2fold':
+          // Rhombic edges breathe — subtle expansion + brightness flash
+          cssScale = Math.max(cssScale, 1 + v * 0.18);
+          camZoomIn = Math.max(camZoomIn, v * 0.16);
+          bright    = Math.max(bright,    0.75 + v * 0.70);
+          break;
+        case 'wiggle':
+          // Jitter the capsid — large random translate + rotation
+          tx  += (Math.random() - 0.5) * v * 42;
+          ty  += (Math.random() - 0.5) * v * 30;
+          rot += (Math.random() - 0.5) * v * 9;
+          break;
+        case 'pulse':
+          // Whole capsid breathes in sync
+          cssScale = Math.max(cssScale, 1 + v * 0.35);
+          camZoomIn = Math.max(camZoomIn, v * 0.30);
+          bright    = Math.max(bright,    0.75 + v * 0.60);
+          break;
+        case 'spin':
+          // Rotate faster — drives the Mol* spin animation
+          spinSpeed += v * 12;
+          break;
       }
     }
   } else {
     const energy = (smooth.bass + smooth.mid + smooth.treble) / 3;
-    bright = 0.75 + energy * 0.7; sat = 1 + energy * 0.6;
+    cssScale = 1 + energy * 0.20; bright = 0.75 + energy * 0.80; sat = 1 + energy * 0.70;
+    camZoomIn = energy * 0.20;
   }
-  wrap.style.transform = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) scaleX(${sx.toFixed(3)}) scaleY(${sy.toFixed(3)})`;
-  wrap.style.filter = `brightness(${bright.toFixed(2)}) saturate(${sat.toFixed(2)})`;
+
+  // 1. CSS transform on viewer container (instant for wiggle, brief transition otherwise)
+  const hasJitter = (tx !== 0 || ty !== 0 || rot !== 0);
+  wrap.style.transition = hasJitter ? 'none' : 'transform 0.05s linear, filter 0.05s linear';
+  wrap.style.transform  = `translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${cssScale.toFixed(3)})`;
+  wrap.style.filter     = `brightness(${bright.toFixed(2)}) saturate(${sat.toFixed(2)})`;
+
+  // 2. Mol* spin speed (always active — speed scales with spin assignment)
+  try {
+    c3d?.setProps({ trackball: { animate: { name: 'spin', params: { speed: spinSpeed } } } });
+  } catch(e) {}
+
+  // 3. Camera zoom — zoom in to make capsid fill frame during opening moments
+  try {
+    const cam = c3d?.camera;
+    if (cam) {
+      if (!appState.danceBaseRadius) appState.danceBaseRadius = cam.state?.radius;
+      const base = appState.danceBaseRadius;
+      if (base) {
+        const targetR = base * (1 - camZoomIn); // smaller radius = camera closer = capsid bigger
+        const curR    = cam.state?.radius ?? base;
+        const newR    = curR + (targetR - curR) * 0.25; // smooth interpolation
+        cam.setState?.({ ...cam.state, radius: Math.max(newR, base * 0.4) });
+      }
+    }
+  } catch(e) {}
 }
 
 function toggleDancePlay() {

@@ -2930,26 +2930,16 @@ function showToast(msg) {
     // Displacement scales per fold axis
     const d5=s5*0.60, d3=s3f*0.56, d2=s2*0.54;
 
-    // ── Dark icosahedron interior — visible through gaps when capsid opens ──
+    // No static background — the canvas is transparent at rest; only opening
+    // shapes are drawn. fdata is still needed for depth-sorting reference.
     const fdata=F.map(([a,b,c],fi)=>{
       const cz=(rv[a][2]+rv[b][2]+rv[c][2])/3, cn=applyM(M,FN[fi]);
       return{a,b,c,fi,cz,light:Math.max(0,-cn[2])};
     }).sort((x,y)=>x.cz-y.cz);
-    ctx.save();
-    ctx.globalAlpha=0.95;
-    fdata.forEach(({a,b,c,light})=>{
-      const sh=0.08+0.92*light;
-      ctx.beginPath();
-      ctx.moveTo(pv[a][0],pv[a][1]);ctx.lineTo(pv[b][0],pv[b][1]);ctx.lineTo(pv[c][0],pv[c][1]);
-      ctx.closePath();
-      ctx.fillStyle=`rgb(${Math.round(6+sh*18)},${Math.round(20+sh*42)},${Math.round(30+sh*55)})`;
-      ctx.fill(); ctx.strokeStyle='rgba(0,10,22,0.55)'; ctx.lineWidth=0.4; ctx.stroke();
-    });
-    ctx.restore();
 
     // ── Pentagon shade: teal-silver, lit from upper-left ──
     function pentShade(cD, amp) {
-      const rc=applyM(M,cD), light=Math.max(0,-rc[2]), sh=0.20+0.80*light, bo=1+amp*0.30;
+      const rc=applyM(M,cD), light=Math.max(0,-rc[2]), sh=0.20+0.80*light, bo=1+amp*0.40;
       return `rgb(${Math.min(255,Math.round((75+sh*110)*bo))},${Math.min(255,Math.round((145+sh*75)*bo))},${Math.min(255,Math.round((128+sh*82)*bo))})`;
     }
 
@@ -2998,24 +2988,27 @@ function showToast(msg) {
     // Depth sort (back → front) — all types together for coherent depth ordering
     subunits.sort((a,b)=>a.depth-b.depth);
 
+    // Pulse: scale the glow/stroke by scaleAll so pulse visibly "blooms" the shapes
+    const pulseGlow = (scaleAll - 1) * 30; // extra shadowBlur from pulse assignment
+    const pulseStroke = scaleAll;           // stroke scales with pulse
+
     subunits.forEach(({corners,cD,depth,rc,type,amp,col})=>{
       const front=depth<0;
+      // All shapes: invisible at rest, bloom purely based on their amplitude.
+      // No persistent dodecahedron background — canvas is empty between openings.
       let fa, fill;
+      fa = front ? Math.min(0.94, amp*0.95) : 0;
+      if (fa < 0.02) return;
+
+      const sh=0.20+0.80*Math.max(0,-rc[2]), bo=1+amp*0.40;
       if (type==='penta') {
-        // Solid pentagon — mostly opaque even at rest; brightens when opening
-        fa = front ? Math.min(0.97, 0.90+amp*0.07) : Math.min(0.08, 0.05+amp*0.03);
         fill = pentShade(cD, amp);
+      } else if (type==='tri') {
+        fill=`rgb(${Math.min(255,Math.round((18+sh*52)*bo))},${Math.min(255,Math.round((55+sh*95)*bo))},${Math.min(255,Math.round((38+sh*78)*bo))})`;
       } else {
-        // Triangle / rhombus petals — invisible at rest, bloom when axis fires
-        fa = front ? Math.min(0.90, amp*0.92) : 0;
-        const sh=0.20+0.80*Math.max(0,-rc[2]), bo=1+amp*0.35;
-        if (type==='tri') {
-          fill=`rgb(${Math.min(255,Math.round((18+sh*52)*bo))},${Math.min(255,Math.round((55+sh*95)*bo))},${Math.min(255,Math.round((38+sh*78)*bo))})`;
-        } else {
-          fill=`rgb(${Math.min(255,Math.round((55+sh*52)*bo))},${Math.min(255,Math.round((24+sh*58)*bo))},${Math.min(255,Math.round((22+sh*58)*bo))})`;
-        }
+        fill=`rgb(${Math.min(255,Math.round((55+sh*52)*bo))},${Math.min(255,Math.round((24+sh*58)*bo))},${Math.min(255,Math.round((22+sh*58)*bo))})`;
       }
-      if(fa<0.02) return;
+
       const pts2d=corners.map(p=>pr(p));
       ctx.save(); ctx.globalAlpha=fa;
       ctx.beginPath();
@@ -3023,17 +3016,18 @@ function showToast(msg) {
       ctx.closePath();
       ctx.fillStyle=fill; ctx.fill();
       ctx.strokeStyle=col;
-      ctx.lineWidth=front?(type==='penta'?1.0+amp*1.2:1.4+amp*2.0):0.25;
+      ctx.lineWidth=(type==='penta'?1.2+amp*2.0:1.6+amp*2.5)*pulseStroke;
       ctx.lineJoin='round';
-      if(front&&amp>0.05){ctx.shadowColor=col;ctx.shadowBlur=3+amp*(type==='penta'?8:16);}
+      if(amp>0.04){ctx.shadowColor=col; ctx.shadowBlur=(type==='penta'?6:10)+amp*22+pulseGlow;}
       ctx.stroke(); ctx.restore();
     });
 
-    // ── Axis-centre markers ───────────────────────────────────────────────
+    // ── Axis-centre markers — only visible when axis is active ───────────
     [[pts2,'#E8624A',s2],[pts3,'#3DAA6A',s3f],[pts5,'#9B72CF',s5]].forEach(([pts,col,amp])=>{
+      if (amp < 0.03) return; // hide entirely when axis is silent
       pts.forEach(pt=>{
         const rz=applyM(M,pt.pos)[2], front=rz<0;
-        const alpha=Math.min((front?0.38:0.06)+amp*(front?0.65:0.06),1);
+        const alpha=Math.min(amp*(front?1.0:0.08),1);
         if(alpha<0.02) return;
         const pp=pr(pt.pos);
         ctx.save(); ctx.globalAlpha=alpha;

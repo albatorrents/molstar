@@ -1574,19 +1574,27 @@ const BAND_DEFS = [
   { key:'mid',         icon:'🎵', name:'Mid / Melody',   freq:'300–3.3k Hz',   default:'open3fold', color:'#3DAA6A' },
   { key:'treble',      icon:'✨', name:'Treble',         freq:'2.5–11k Hz',    default:'open5fold', color:'#9B72CF' },
   { key:'beat',        icon:'🥁', name:'Beat / Kick',    freq:'onset detect',  default:'pulse',     color:'#4AB5E8' },
-  { key:'piano',       icon:'🎹', name:'Piano (soft)',   freq:'vol < 15 %',    default:'open3fold', color:'#7BAFD4' },
+  { key:'piano',       icon:'🎹', name:'Piano (soft)',   freq:'vol < 15 %',    default:'wiggle',    color:'#7BAFD4' },
   { key:'mezzoforte',  icon:'🎼', name:'Mezzoforte',     freq:'vol < 25 %',    default:'wiggle',    color:'#D4A827' },
-  { key:'forte',       icon:'🔊', name:'Forte (loud)',   freq:'vol > 25 %',    default:'open5fold', color:'#C54444' },
+  { key:'forte',       icon:'🔊', name:'Forte (loud)',   freq:'vol > 25 %',    default:'pulse',     color:'#C54444' },
 ];
-const MOVE_OPTIONS = [
+// Frequency bands (bass/mid/treble) → fold-axis openings only
+const MOVE_OPTIONS_FOLD = [
   { value:'open2fold', label:'Open 2-fold axis (edges)' },
   { value:'open3fold', label:'Open 3-fold axis (faces)' },
   { value:'open5fold', label:'Open 5-fold axis (vertices)' },
-  { value:'wiggle',    label:'Wiggle / vibrate' },
-  { value:'pulse',     label:'Pulse whole capsid' },
-  { value:'spin',      label:'Spin faster' },
   { value:'none',      label:'— No movement —' },
 ];
+// Dynamics bands (beat/piano/mezzoforte/forte) → movements only
+const MOVE_OPTIONS_DYN = [
+  { value:'wiggle', label:'Wiggle / vibrate' },
+  { value:'pulse',  label:'Pulse whole capsid' },
+  { value:'spin',   label:'Spin faster' },
+  { value:'none',   label:'— No movement —' },
+];
+const FOLD_BAND_KEYS = new Set(['bass','mid','treble']);
+// Keep legacy alias so any remaining references don't break
+const MOVE_OPTIONS = MOVE_OPTIONS_FOLD;
 
 let s3AudioCtx = null, s3Analyser = null, s3AudioConnected = false;
 let s3SpectrumRAF = null, s3PreviewRAF = null;
@@ -1649,7 +1657,7 @@ function buildAssignRows() {
         <div><div class="assign-band-name">${band.name}</div><div class="assign-band-freq">${band.freq}</div></div>
       </div>
       <select class="assign-select" onchange="updateMovement('${band.key}','movement',this.value)">
-        ${MOVE_OPTIONS.map(o=>`<option value="${o.value}"${m.movement===o.value?' selected':''}>${o.label}</option>`).join('')}
+        ${(FOLD_BAND_KEYS.has(band.key) ? MOVE_OPTIONS_FOLD : MOVE_OPTIONS_DYN).map(o=>`<option value="${o.value}"${m.movement===o.value?' selected':''}>${o.label}</option>`).join('')}
       </select>
       <div class="assign-int-wrap">
         <div class="assign-int-label">Intensity</div>

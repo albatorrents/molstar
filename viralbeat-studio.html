@@ -1590,7 +1590,17 @@ const MOVE_OPTIONS = [
 
 let s3AudioCtx = null, s3Analyser = null, s3AudioConnected = false;
 let s3SpectrumRAF = null, s3PreviewRAF = null;
-let s3M = [1,0,0,0,1,0,0,0,1];
+
+// Canonical resting orientation for the Stage 3 preview dodecahedron.
+// Y+15° then X-20°: shows the structure from slightly to the right and above,
+// giving a clear 3D perspective of the pentagonal faces.
+// All fold types open from this exact pose so students can compare them fairly.
+const S3_INIT_M = [
+   0.966, -0.089,  0.244,
+   0.000,  0.940,  0.342,
+  -0.259, -0.330,  0.908
+];
+let s3M = [...S3_INIT_M];
 const s3MulM3 = (A,B) => [
   A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
   A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8],
@@ -1598,6 +1608,7 @@ const s3MulM3 = (A,B) => [
 ];
 
 function initStage3() {
+  s3M = [...S3_INIT_M]; // always start from the same canonical pose
   if (!appState.movements) {
     appState.movements = {};
     BAND_DEFS.forEach(b => { appState.movements[b.key] = { movement: b.default, intensity: 7 }; });
@@ -1842,11 +1853,7 @@ function startS3Loops() {
   if (pc) { pc.width = pc.clientWidth || 380; pc.height = 280; }
   if (sc) { sc.width = sc.clientWidth || 380; sc.height = 90; }
 
-  const s=0.003, cos=Math.cos(s), sin=Math.sin(s);
-  const Ry=[cos,0,sin,0,1,0,-sin,0,cos];
-
   function previewFrame() {
-    s3M = s3MulM3(Ry, s3M);
     const bands = s3GetBands();
     // Solid T=1 dodecahedron, single-axis mode: only the dominant fold opens.
     if (pc && window.drawDodecFrame) window.drawDodecFrame(pc, s3M, bands, appState.movements, true);

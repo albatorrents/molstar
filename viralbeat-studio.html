@@ -2937,7 +2937,6 @@ function showToast(msg) {
     // Displacement scales per fold axis
     const d5=s5*0.60, d3=s3f*0.56, d2=s2*0.54;
 
-    const maxAmp = Math.max(s2,s3f,s5);
     // Cross-fade: 0 = fully resting (closed dodecahedron), 1 = fully opening
     const openFrac = Math.min(1, maxAmp / 0.08);
     const restFrac = 1 - openFrac;

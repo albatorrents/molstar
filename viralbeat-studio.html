@@ -2991,76 +2991,52 @@ function showToast(msg) {
     }
 
     // ── OPENING STATE: displaced pentagons + fold-specific petals ────────
-    // All shapes drawn at solid colors (SOLID opacity); opacity scales only
-    // with openFrac so the transition from resting is smooth.
+    // ONE OBJECT: only the 12 dodecahedron pentagons are ever drawn.
+    // Fold-axis identity is shown through glow/outline colour:
+    //   5-fold → purple #9B72CF   3-fold → green #3DBB72   2-fold → orange #E86040
+    // Displacement scales are tuned so each axis looks visually distinct:
+    //   5-fold: d5 = s5*0.60   (large gap, clearly open)
+    //   3-fold: V_ADJ_FN * s3f*0.90  (medium gap, ≈ 0.40 effective radial)
+    //   2-fold: V_ADJ_EM * s2*0.70   (medium-large gap, ≈ 0.60 effective radial)
+    const D3_SCALE = 0.90, D2_SCALE = 0.70; // stronger than before so 3/2-fold gaps are visible
+
+    // Dominant axis → accent colour for glow/outline
+    const foldCol = s5 >= s3f && s5 >= s2 ? '#9B72CF'
+                  : s3f >= s2              ? '#3DBB72'
+                  :                          '#E86040';
+
     if (openFrac > 0.01) {
       const subunits = [];
-
-      // 12 PENTAMERS — displaced by Σ of all active axis contributions
       pts5.forEach(pt => {
         const vi = pt.vi, c = pt.pos;
         const d = [
-          c[0]*d5 + V_ADJ_FN[vi][0]*d3*0.60 + V_ADJ_EM[vi][0]*d2*0.55,
-          c[1]*d5 + V_ADJ_FN[vi][1]*d3*0.60 + V_ADJ_EM[vi][1]*d2*0.55,
-          c[2]*d5 + V_ADJ_FN[vi][2]*d3*0.60 + V_ADJ_EM[vi][2]*d2*0.55,
+          c[0]*d5 + V_ADJ_FN[vi][0]*s3f*D3_SCALE*0.56 + V_ADJ_EM[vi][0]*s2*D2_SCALE*0.54,
+          c[1]*d5 + V_ADJ_FN[vi][1]*s3f*D3_SCALE*0.56 + V_ADJ_EM[vi][1]*s2*D2_SCALE*0.54,
+          c[2]*d5 + V_ADJ_FN[vi][2]*s3f*D3_SCALE*0.56 + V_ADJ_EM[vi][2]*s2*D2_SCALE*0.54,
         ];
         const cD = [c[0]+d[0], c[1]+d[1], c[2]+d[2]];
         const cr = applyM(M, cD);
         const corners = dodecPenta[vi].map(fc => fc.map((x,j) => x+d[j]));
-        subunits.push({ corners, cD, depth: cr[2], rc: cr, type: 'penta', col: '#6ab0a8' });
-      });
-
-      // 20 TRIANGLE petals (3-fold)
-      if (s3f > 0.005) pts3.forEach(pt => {
-        const c = pt.pos, fi = pt.fi;
-        const disp = FN[fi].map(x => x*d3);
-        const cD = c.map((x,j) => x+disp[j]), cr = applyM(M, cD);
-        const [a,b,cv] = F[fi];
-        const corners = [V[a],V[b],V[cv]].map(v => v.map((x,j) => x+disp[j]));
-        subunits.push({ corners, cD, depth: cr[2], rc: cr, type: 'tri', col: '#3DBB72' });
-      });
-
-      // 30 RHOMBUS petals (2-fold)
-      if (s2 > 0.005) pts2.forEach(pt => {
-        const c = pt.pos, ei = pt.ei;
-        const disp = c.map(x => x*d2);
-        const cD = c.map((x,j) => x+disp[j]), cr = applyM(M, cD);
-        const [ea,eb] = E[ei];
-        const key = Math.min(ea,eb)+'-'+Math.max(ea,eb);
-        const faces = EF[key]; if (!faces||faces.length<2) return;
-        const fc0 = FC[faces[0].fi], fc1 = FC[faces[1].fi];
-        const corners = [V[ea],fc0,V[eb],fc1].map(v => v.map((x,j) => x+disp[j]));
-        subunits.push({ corners, cD, depth: cr[2], rc: cr, type: 'rhom', col: '#E86040' });
+        subunits.push({ corners, cD, depth: cr[2], rc: cr });
       });
 
       subunits.sort((a,b) => a.depth - b.depth);
 
-      subunits.forEach(({ corners, cD, depth, rc, type, col }) => {
+      subunits.forEach(({ corners, cD, depth, rc }) => {
         const front = depth < 0;
-        const fa = openFrac * (front ? SOLID : (type==='penta' ? 0.06 : 0));
+        const fa = openFrac * (front ? SOLID : 0.06);
         if (fa < 0.02) return;
-
-        const light = Math.max(0, -rc[2]), sh = 0.22 + 0.78*light, bo = 1 + maxAmp*0.30;
-        let fill;
-        if (type === 'penta') {
-          fill = pentShade(cD, bo);
-        } else if (type === 'tri') {
-          fill = `rgb(${Math.min(255,Math.round((20+sh*55)*bo))},${Math.min(255,Math.round((58+sh*100)*bo))},${Math.min(255,Math.round((42+sh*82)*bo))})`;
-        } else {
-          fill = `rgb(${Math.min(255,Math.round((58+sh*55)*bo))},${Math.min(255,Math.round((26+sh*62)*bo))},${Math.min(255,Math.round((24+sh*62)*bo))})`;
-        }
-
+        const bo = 1 + maxAmp*0.30;
         const pts2d = corners.map(p => pr(p));
         ctx.save(); ctx.globalAlpha = fa;
         ctx.beginPath();
         pts2d.forEach((p,i) => { if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
         ctx.closePath();
-        ctx.fillStyle = fill; ctx.fill();
-        ctx.strokeStyle = col;
-        ctx.lineWidth = (type==='penta' ? 1.4 + maxAmp*2.2 : 1.8 + maxAmp*2.8) * pulseStroke;
+        ctx.fillStyle = pentShade(cD, bo); ctx.fill();
+        ctx.strokeStyle = front ? foldCol : '#4a8a82';
+        ctx.lineWidth = (1.4 + maxAmp*2.2) * pulseStroke;
         ctx.lineJoin = 'round';
-        ctx.shadowColor = col;
-        ctx.shadowBlur = (type==='penta' ? 6 : 10) + maxAmp*24 + pulseGlow;
+        if (front && maxAmp > 0.04) { ctx.shadowColor = foldCol; ctx.shadowBlur = 6 + maxAmp*24 + pulseGlow; }
         ctx.stroke(); ctx.restore();
       });
     }

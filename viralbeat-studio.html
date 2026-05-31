@@ -2937,97 +2937,125 @@ function showToast(msg) {
     // Displacement scales per fold axis
     const d5=s5*0.60, d3=s3f*0.56, d2=s2*0.54;
 
-    // No static background — the canvas is transparent at rest; only opening
-    // shapes are drawn. fdata is still needed for depth-sorting reference.
-    const fdata=F.map(([a,b,c],fi)=>{
-      const cz=(rv[a][2]+rv[b][2]+rv[c][2])/3, cn=applyM(M,FN[fi]);
-      return{a,b,c,fi,cz,light:Math.max(0,-cn[2])};
-    }).sort((x,y)=>x.cz-y.cz);
+    const maxAmp = Math.max(s2,s3f,s5);
+    // Cross-fade: 0 = fully resting (closed dodecahedron), 1 = fully opening
+    const openFrac = Math.min(1, maxAmp / 0.08);
+    const restFrac = 1 - openFrac;
 
-    // ── Pentagon shade: teal-silver, lit from upper-left ──
-    function pentShade(cD, amp) {
-      const rc=applyM(M,cD), light=Math.max(0,-rc[2]), sh=0.20+0.80*light, bo=1+amp*0.40;
-      return `rgb(${Math.min(255,Math.round((75+sh*110)*bo))},${Math.min(255,Math.round((145+sh*75)*bo))},${Math.min(255,Math.round((128+sh*82)*bo))})`;
+    // Pulse affects stroke width + glow radius (applied to whichever state is drawn)
+    const pulseGlow   = (scaleAll - 1) * 30;
+    const pulseStroke = scaleAll;
+
+    // ── Pentagon shade: lit teal-silver ──
+    function pentShade(cD, bo) {
+      const rc=applyM(M,cD), light=Math.max(0,-rc[2]), sh=0.22+0.78*light;
+      return `rgb(${Math.min(255,Math.round((75+sh*115)*bo))},${Math.min(255,Math.round((148+sh*78)*bo))},${Math.min(255,Math.round((130+sh*85)*bo))})`;
     }
 
-    // ── Build all subunits ────────────────────────────────────────────────
-    const subunits=[];
+    // Solid-opacity helpers — shapes are fully opaque once visible;
+    // back-facing pentagons show dimly for 3-D depth cue.
+    const SOLID = 0.93;
 
-    // 12 PENTAMERS — one per icosahedral vertex — displacement = Σ axis contributions
-    pts5.forEach(pt=>{
-      const vi=pt.vi, c=pt.pos;
-      // Displacement = 5-fold + 3-fold-share + 2-fold-share (vector sum)
-      const d=[
-        c[0]*d5 + V_ADJ_FN[vi][0]*d3*0.60 + V_ADJ_EM[vi][0]*d2*0.55,
-        c[1]*d5 + V_ADJ_FN[vi][1]*d3*0.60 + V_ADJ_EM[vi][1]*d2*0.55,
-        c[2]*d5 + V_ADJ_FN[vi][2]*d3*0.60 + V_ADJ_EM[vi][2]*d2*0.55,
-      ];
-      const cD=[c[0]+d[0],c[1]+d[1],c[2]+d[2]];
-      const cr=applyM(M,cD);
-      const corners=dodecPenta[vi].map(fc=>fc.map((x,j)=>x+d[j]));
-      const ampAll=Math.max(s5, s3f*0.65, s2*0.55);
-      subunits.push({corners,cD,depth:cr[2],rc:cr,type:'penta',amp:ampAll,col:'#6aa8a0'});
-    });
+    // ── RESTING STATE: solid closed dodecahedron ─────────────────────────
+    // Shown whenever no fold axis is actively opening.
+    // 12 pentagons at their undisplaced positions, depth-sorted back→front.
+    if (restFrac > 0.01) {
+      const resting = pts5.map(pt => {
+        const cr = applyM(M, pt.pos);
+        return { vi: pt.vi, pos: pt.pos, depth: cr[2], light: Math.max(0, -cr[2]) };
+      }).sort((a,b) => a.depth - b.depth);
 
-    // 20 TRIANGLE petals — 3-fold axis subunits (visible only when s3f > 0)
-    if (s3f>0.005) pts3.forEach(pt=>{
-      const c=pt.pos, fi=pt.fi;
-      const disp=FN[fi].map(x=>x*d3);
-      const cD=c.map((x,j)=>x+disp[j]), cr=applyM(M,cD);
-      const[a,b,cv]=F[fi];
-      const corners=[V[a],V[b],V[cv]].map(v=>v.map((x,j)=>x+disp[j]));
-      subunits.push({corners,cD,depth:cr[2],rc:cr,type:'tri',amp:s3f,col:'#3DAA6A'});
-    });
+      resting.forEach(({ vi, pos, depth, light }) => {
+        const front = depth < 0;
+        const fa = restFrac * (front ? SOLID : 0.06);
+        if (fa < 0.02) return;
+        const pts2d = dodecPenta[vi].map(p => pr(p));
+        const sh = 0.22 + 0.78 * light, bo = 1;
+        ctx.save(); ctx.globalAlpha = fa;
+        ctx.beginPath();
+        pts2d.forEach((p,i) => { if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        ctx.closePath();
+        ctx.fillStyle = pentShade(pos, bo); ctx.fill();
+        ctx.strokeStyle = '#4a8a82'; ctx.lineWidth = 1.2 * pulseStroke; ctx.lineJoin = 'round';
+        if (wigAmp > 0.05 || scaleAll > 1.05) { ctx.shadowColor='#6aa8a0'; ctx.shadowBlur=4+pulseGlow; }
+        ctx.stroke(); ctx.restore();
+      });
+    }
 
-    // 30 RHOMBUS petals — 2-fold axis subunits (visible only when s2 > 0)
-    if (s2>0.005) pts2.forEach(pt=>{
-      const c=pt.pos, ei=pt.ei;
-      const disp=c.map(x=>x*d2);
-      const cD=c.map((x,j)=>x+disp[j]), cr=applyM(M,cD);
-      const[ea,eb]=E[ei];
-      const key=Math.min(ea,eb)+'-'+Math.max(ea,eb);
-      const faces=EF[key]; if(!faces||faces.length<2) return;
-      const fc0=FC[faces[0].fi], fc1=FC[faces[1].fi];
-      const corners=[V[ea],fc0,V[eb],fc1].map(v=>v.map((x,j)=>x+disp[j]));
-      subunits.push({corners,cD,depth:cr[2],rc:cr,type:'rhom',amp:s2,col:'#E8624A'});
-    });
+    // ── OPENING STATE: displaced pentagons + fold-specific petals ────────
+    // All shapes drawn at solid colors (SOLID opacity); opacity scales only
+    // with openFrac so the transition from resting is smooth.
+    if (openFrac > 0.01) {
+      const subunits = [];
 
-    // Depth sort (back → front) — all types together for coherent depth ordering
-    subunits.sort((a,b)=>a.depth-b.depth);
+      // 12 PENTAMERS — displaced by Σ of all active axis contributions
+      pts5.forEach(pt => {
+        const vi = pt.vi, c = pt.pos;
+        const d = [
+          c[0]*d5 + V_ADJ_FN[vi][0]*d3*0.60 + V_ADJ_EM[vi][0]*d2*0.55,
+          c[1]*d5 + V_ADJ_FN[vi][1]*d3*0.60 + V_ADJ_EM[vi][1]*d2*0.55,
+          c[2]*d5 + V_ADJ_FN[vi][2]*d3*0.60 + V_ADJ_EM[vi][2]*d2*0.55,
+        ];
+        const cD = [c[0]+d[0], c[1]+d[1], c[2]+d[2]];
+        const cr = applyM(M, cD);
+        const corners = dodecPenta[vi].map(fc => fc.map((x,j) => x+d[j]));
+        subunits.push({ corners, cD, depth: cr[2], rc: cr, type: 'penta', col: '#6ab0a8' });
+      });
 
-    // Pulse: scale the glow/stroke by scaleAll so pulse visibly "blooms" the shapes
-    const pulseGlow = (scaleAll - 1) * 30; // extra shadowBlur from pulse assignment
-    const pulseStroke = scaleAll;           // stroke scales with pulse
+      // 20 TRIANGLE petals (3-fold)
+      if (s3f > 0.005) pts3.forEach(pt => {
+        const c = pt.pos, fi = pt.fi;
+        const disp = FN[fi].map(x => x*d3);
+        const cD = c.map((x,j) => x+disp[j]), cr = applyM(M, cD);
+        const [a,b,cv] = F[fi];
+        const corners = [V[a],V[b],V[cv]].map(v => v.map((x,j) => x+disp[j]));
+        subunits.push({ corners, cD, depth: cr[2], rc: cr, type: 'tri', col: '#3DBB72' });
+      });
 
-    subunits.forEach(({corners,cD,depth,rc,type,amp,col})=>{
-      const front=depth<0;
-      // All shapes: invisible at rest, bloom purely based on their amplitude.
-      // No persistent dodecahedron background — canvas is empty between openings.
-      let fa, fill;
-      fa = front ? Math.min(0.94, amp*0.95) : 0;
-      if (fa < 0.02) return;
+      // 30 RHOMBUS petals (2-fold)
+      if (s2 > 0.005) pts2.forEach(pt => {
+        const c = pt.pos, ei = pt.ei;
+        const disp = c.map(x => x*d2);
+        const cD = c.map((x,j) => x+disp[j]), cr = applyM(M, cD);
+        const [ea,eb] = E[ei];
+        const key = Math.min(ea,eb)+'-'+Math.max(ea,eb);
+        const faces = EF[key]; if (!faces||faces.length<2) return;
+        const fc0 = FC[faces[0].fi], fc1 = FC[faces[1].fi];
+        const corners = [V[ea],fc0,V[eb],fc1].map(v => v.map((x,j) => x+disp[j]));
+        subunits.push({ corners, cD, depth: cr[2], rc: cr, type: 'rhom', col: '#E86040' });
+      });
 
-      const sh=0.20+0.80*Math.max(0,-rc[2]), bo=1+amp*0.40;
-      if (type==='penta') {
-        fill = pentShade(cD, amp);
-      } else if (type==='tri') {
-        fill=`rgb(${Math.min(255,Math.round((18+sh*52)*bo))},${Math.min(255,Math.round((55+sh*95)*bo))},${Math.min(255,Math.round((38+sh*78)*bo))})`;
-      } else {
-        fill=`rgb(${Math.min(255,Math.round((55+sh*52)*bo))},${Math.min(255,Math.round((24+sh*58)*bo))},${Math.min(255,Math.round((22+sh*58)*bo))})`;
-      }
+      subunits.sort((a,b) => a.depth - b.depth);
 
-      const pts2d=corners.map(p=>pr(p));
-      ctx.save(); ctx.globalAlpha=fa;
-      ctx.beginPath();
-      pts2d.forEach((p,i)=>{if(i===0)ctx.moveTo(p[0],p[1]);else ctx.lineTo(p[0],p[1]);});
-      ctx.closePath();
-      ctx.fillStyle=fill; ctx.fill();
-      ctx.strokeStyle=col;
-      ctx.lineWidth=(type==='penta'?1.2+amp*2.0:1.6+amp*2.5)*pulseStroke;
-      ctx.lineJoin='round';
-      if(amp>0.04){ctx.shadowColor=col; ctx.shadowBlur=(type==='penta'?6:10)+amp*22+pulseGlow;}
-      ctx.stroke(); ctx.restore();
-    });
+      subunits.forEach(({ corners, cD, depth, rc, type, col }) => {
+        const front = depth < 0;
+        const fa = openFrac * (front ? SOLID : (type==='penta' ? 0.06 : 0));
+        if (fa < 0.02) return;
+
+        const light = Math.max(0, -rc[2]), sh = 0.22 + 0.78*light, bo = 1 + maxAmp*0.30;
+        let fill;
+        if (type === 'penta') {
+          fill = pentShade(cD, bo);
+        } else if (type === 'tri') {
+          fill = `rgb(${Math.min(255,Math.round((20+sh*55)*bo))},${Math.min(255,Math.round((58+sh*100)*bo))},${Math.min(255,Math.round((42+sh*82)*bo))})`;
+        } else {
+          fill = `rgb(${Math.min(255,Math.round((58+sh*55)*bo))},${Math.min(255,Math.round((26+sh*62)*bo))},${Math.min(255,Math.round((24+sh*62)*bo))})`;
+        }
+
+        const pts2d = corners.map(p => pr(p));
+        ctx.save(); ctx.globalAlpha = fa;
+        ctx.beginPath();
+        pts2d.forEach((p,i) => { if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = (type==='penta' ? 1.4 + maxAmp*2.2 : 1.8 + maxAmp*2.8) * pulseStroke;
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = col;
+        ctx.shadowBlur = (type==='penta' ? 6 : 10) + maxAmp*24 + pulseGlow;
+        ctx.stroke(); ctx.restore();
+      });
+    }
 
     // ── Axis-centre markers — only visible when axis is active ───────────
     [[pts2,'#E8624A',s2],[pts3,'#3DAA6A',s3f],[pts5,'#9B72CF',s5]].forEach(([pts,col,amp])=>{

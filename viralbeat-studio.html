@@ -2882,9 +2882,28 @@ function showToast(msg) {
     return n ? [s[0]/n,s[1]/n,s[2]/n] : V[vi];
   });
 
+  // ── T4 icosahedron surface — p=2 subdivision of 20 icosahedral faces ─────
+  // 4 sub-triangles per face = 80 total. Midpoints are normalised to the sphere.
+  // Pre-computed once; used as the solid background in drawDodecFrame.
+  const T4_TRIS = (() => {
+    const tris = [];
+    F.forEach(([a,b,c]) => {
+      const ab = norm3([(V[a][0]+V[b][0])/2,(V[a][1]+V[b][1])/2,(V[a][2]+V[b][2])/2]);
+      const bc = norm3([(V[b][0]+V[c][0])/2,(V[b][1]+V[c][1])/2,(V[b][2]+V[c][2])/2]);
+      const ac = norm3([(V[a][0]+V[c][0])/2,(V[a][1]+V[c][1])/2,(V[a][2]+V[c][2])/2]);
+      tris.push([V[a], ab, ac]);   // corner at a
+      tris.push([ab, V[b], bc]);   // corner at b
+      tris.push([ac, bc, V[c]]);   // corner at c
+      tris.push([ab, bc, ac]);     // central (inverted)
+    });
+    return tris;
+  })();
+
   // ── Stage 3 live-preview renderer ────────────────────────────────────────
-  // Always draws a T=1 solid dodecahedron (12 pentagon faces = 12 pentamers).
-  // 5-fold → all 12 pentagons translate radially outward.
+  // Draws a solid T4 icosahedron (80 sub-triangles). When a fold axis fires,
+  // the corresponding sections (pentagons/triangles/rhombuses) detach from the
+  // surface and translate outward — same teal fill, coloured glow shows axis type.
+  // The T4 solid fades to a faint reference while sections are open.
   // 3-fold → green triangular petals appear in the 3-fold gaps.
   // 2-fold → orange rhombic petals appear in the 2-fold gaps.
   // Combination: pentagon displacement = Σ of all active axis contributions.
@@ -2942,101 +2961,115 @@ function showToast(msg) {
       (V[a][0]+V[b][0]+V[c][0])/3,(V[a][1]+V[b][1]+V[c][1])/3,(V[a][2]+V[b][2]+V[c][2])/3
     ]);
 
-    // Displacement scales per fold axis
-    const d5=s5*0.60, d3=s3f*0.56, d2=s2*0.54;
+    // Fold-axis displacement scales
+    const d5 = s5*0.62, d3 = s3f*0.58, d2 = s2*0.56;
 
-    // Non-overlapping transition — resting fades OUT by 0.04, opening fades IN from 0.06.
-    // The brief gap (0.04–0.06) prevents both states drawing simultaneously ("two polymers").
-    const restFrac = Math.min(1, Math.max(0, (0.04 - maxAmp) / 0.04));  // 1→0 over 0..0.04
-    const openFrac = Math.min(1, Math.max(0, (maxAmp - 0.06) / 0.06));  // 0→1 over 0.06..0.12
+    // openFrac: 0=solid resting, 1=fully open. Slight gap prevents double-drawing.
+    const openFrac = Math.min(1, Math.max(0, (maxAmp - 0.05) / 0.07));
+    const restFrac = Math.min(1, Math.max(0, (0.04 - maxAmp) / 0.04));
 
-    // Pulse affects stroke width + glow radius (applied to whichever state is drawn)
-    const pulseGlow   = (scaleAll - 1) * 30;
+    const pulseGlow   = (scaleAll - 1) * 28;
     const pulseStroke = scaleAll;
-
-    // ── Pentagon shade: lit teal-silver ──
-    function pentShade(cD, bo) {
-      const rc=applyM(M,cD), light=Math.max(0,-rc[2]), sh=0.22+0.78*light;
-      return `rgb(${Math.min(255,Math.round((75+sh*115)*bo))},${Math.min(255,Math.round((148+sh*78)*bo))},${Math.min(255,Math.round((130+sh*85)*bo))})`;
-    }
-
-    // Solid-opacity helpers — shapes are fully opaque once visible;
-    // back-facing pentagons show dimly for 3-D depth cue.
     const SOLID = 0.93;
 
-    // ── RESTING STATE: solid closed dodecahedron ─────────────────────────
-    // Shown whenever no fold axis is actively opening.
-    // 12 pentagons at their undisplaced positions, depth-sorted back→front.
-    if (restFrac > 0.01) {
-      const resting = pts5.map(pt => {
-        const cr = applyM(M, pt.pos);
-        return { vi: pt.vi, pos: pt.pos, depth: cr[2], light: Math.max(0, -cr[2]) };
-      }).sort((a,b) => a.depth - b.depth);
-
-      resting.forEach(({ vi, pos, depth, light }) => {
-        const front = depth < 0;
-        const fa = restFrac * (front ? SOLID : 0.06);
-        if (fa < 0.02) return;
-        const pts2d = dodecPenta[vi].map(p => pr(p));
-        const sh = 0.22 + 0.78 * light, bo = 1;
-        ctx.save(); ctx.globalAlpha = fa;
-        ctx.beginPath();
-        pts2d.forEach((p,i) => { if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
-        ctx.closePath();
-        ctx.fillStyle = pentShade(pos, bo); ctx.fill();
-        ctx.strokeStyle = '#4a8a82'; ctx.lineWidth = 1.2 * pulseStroke; ctx.lineJoin = 'round';
-        if (wigAmp > 0.05 || scaleAll > 1.05) { ctx.shadowColor='#6aa8a0'; ctx.shadowBlur=4+pulseGlow; }
-        ctx.stroke(); ctx.restore();
-      });
+    // Shared teal-silver fill (same colour for background AND opening sections)
+    function capsShade(pt, bo) {
+      const rc = applyM(M, pt), light = Math.max(0, -rc[2]), sh = 0.22 + 0.78*light;
+      return `rgb(${Math.min(255,Math.round((72+sh*118)*bo))},${Math.min(255,Math.round((145+sh*80)*bo))},${Math.min(255,Math.round((128+sh*87)*bo))})`;
     }
 
-    // ── OPENING STATE: displaced pentagons + fold-specific petals ────────
-    // ONE OBJECT: only the 12 dodecahedron pentagons are ever drawn.
-    // Fold-axis identity is shown through glow/outline colour:
-    //   5-fold → purple #9B72CF   3-fold → green #3DBB72   2-fold → orange #E86040
-    // Displacement scales are tuned so each axis looks visually distinct:
-    //   5-fold: d5 = s5*0.60   (large gap, clearly open)
-    //   3-fold: V_ADJ_FN * s3f*0.90  (medium gap, ≈ 0.40 effective radial)
-    //   2-fold: V_ADJ_EM * s2*0.70   (medium-large gap, ≈ 0.60 effective radial)
-    const D3_SCALE = 0.90, D2_SCALE = 0.70; // stronger than before so 3/2-fold gaps are visible
-
-    // Dominant axis → accent colour for glow/outline
+    // Fold-axis accent colour (outline + glow on opening sections)
     const foldCol = s5 >= s3f && s5 >= s2 ? '#9B72CF'
                   : s3f >= s2              ? '#3DBB72'
                   :                          '#E86040';
 
-    if (openFrac > 0.01) {
-      const subunits = [];
-      pts5.forEach(pt => {
-        const vi = pt.vi, c = pt.pos;
-        const d = [
-          c[0]*d5 + V_ADJ_FN[vi][0]*s3f*D3_SCALE*0.56 + V_ADJ_EM[vi][0]*s2*D2_SCALE*0.54,
-          c[1]*d5 + V_ADJ_FN[vi][1]*s3f*D3_SCALE*0.56 + V_ADJ_EM[vi][1]*s2*D2_SCALE*0.54,
-          c[2]*d5 + V_ADJ_FN[vi][2]*s3f*D3_SCALE*0.56 + V_ADJ_EM[vi][2]*s2*D2_SCALE*0.54,
-        ];
-        const cD = [c[0]+d[0], c[1]+d[1], c[2]+d[2]];
-        const cr = applyM(M, cD);
-        const corners = dodecPenta[vi].map(fc => fc.map((x,j) => x+d[j]));
-        subunits.push({ corners, cD, depth: cr[2], rc: cr });
+    // ── T4 ICOSAHEDRON BACKGROUND ────────────────────────────────────────
+    // 80 sub-triangles, always drawn. Fades to a faint reference when opening.
+    // restFrac=1 (fully solid at rest), openFrac=1 (dim when open).
+    const bgAlpha = Math.max(0.12, SOLID * restFrac + 0.14 * openFrac);
+    {
+      const t4Sorted = T4_TRIS.map(([v0,v1,v2]) => {
+        const c = [(v0[0]+v1[0]+v2[0])/3,(v0[1]+v1[1]+v2[1])/3,(v0[2]+v1[2]+v2[2])/3];
+        const rc = applyM(M, c);
+        return { v0, v1, v2, depth: rc[2], ctr: c, light: Math.max(0,-rc[2]) };
+      }).sort((a,b) => a.depth - b.depth);
+
+      t4Sorted.forEach(({ v0,v1,v2, depth, ctr, light }) => {
+        const front = depth < 0;
+        const fa = bgAlpha * (front ? 1 : 0.07);
+        if (fa < 0.015) return;
+        const bo = 1 + (wigAmp>0.05||scaleAll>1.05 ? 0.12 : 0);
+        ctx.save(); ctx.globalAlpha = fa;
+        ctx.beginPath();
+        [v0,v1,v2].forEach((v,i) => { const p=pr(v); if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        ctx.closePath();
+        ctx.fillStyle = capsShade(ctr, bo); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,18,32,0.30)'; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.restore();
       });
+    }
+
+    // ── OPENING SECTIONS ─────────────────────────────────────────────────
+    // Sections detach from the T4 surface and float outward.
+    // Same teal fill as the background → looks like ONE object opening.
+    // Coloured outline + glow shows which fold axis is active.
+    if (openFrac > 0.01) {
+      const FC = F.map(([a,b,c]) => [
+        (V[a][0]+V[b][0]+V[c][0])/3,(V[a][1]+V[b][1]+V[c][1])/3,(V[a][2]+V[b][2]+V[c][2])/3
+      ]);
+      const subunits = [];
+
+      // 5-fold: 12 dodecahedron pentagon caps lift outward
+      if (s5 > 0.005) {
+        pts5.forEach(pt => {
+          const c = pt.pos, disp = c.map(x => x*d5);
+          const cD = c.map((x,j)=>x+disp[j]), cr = applyM(M,cD);
+          const corners = dodecPenta[pt.vi].map(fc => fc.map((x,j)=>x+disp[j]));
+          subunits.push({ corners, cD, depth:cr[2], col:'#9B72CF' });
+        });
+      }
+
+      // 3-fold: 20 icosahedral face triangles lift outward
+      if (s3f > 0.005) {
+        pts3.forEach(pt => {
+          const c = pt.pos, disp = FN[pt.fi].map(x=>x*d3);
+          const cD = c.map((x,j)=>x+disp[j]), cr = applyM(M,cD);
+          const [a,b,cv] = F[pt.fi];
+          const corners = [V[a],V[b],V[cv]].map(v=>v.map((x,j)=>x+disp[j]));
+          subunits.push({ corners, cD, depth:cr[2], col:'#3DBB72' });
+        });
+      }
+
+      // 2-fold: 30 rhombus sections lift outward
+      if (s2 > 0.005) {
+        pts2.forEach(pt => {
+          const c = pt.pos, disp = c.map(x=>x*d2);
+          const cD = c.map((x,j)=>x+disp[j]), cr = applyM(M,cD);
+          const [ea,eb] = E[pt.ei];
+          const key = Math.min(ea,eb)+'-'+Math.max(ea,eb);
+          const faces = EF[key]; if(!faces||faces.length<2) return;
+          const corners = [V[ea],FC[faces[0].fi],V[eb],FC[faces[1].fi]].map(v=>v.map((x,j)=>x+disp[j]));
+          subunits.push({ corners, cD, depth:cr[2], col:'#E86040' });
+        });
+      }
 
       subunits.sort((a,b) => a.depth - b.depth);
 
-      subunits.forEach(({ corners, cD, depth, rc }) => {
+      subunits.forEach(({ corners, cD, depth, col }) => {
         const front = depth < 0;
-        const fa = openFrac * (front ? SOLID : 0.06);
-        if (fa < 0.02) return;
-        const bo = 1 + maxAmp*0.30;
+        const fa = openFrac * (front ? SOLID : 0.07);
+        if (fa < 0.015) return;
+        const bo = 1 + maxAmp*0.28;
         const pts2d = corners.map(p => pr(p));
         ctx.save(); ctx.globalAlpha = fa;
         ctx.beginPath();
-        pts2d.forEach((p,i) => { if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
+        pts2d.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); });
         ctx.closePath();
-        ctx.fillStyle = pentShade(cD, bo); ctx.fill();
-        ctx.strokeStyle = front ? foldCol : '#4a8a82';
-        ctx.lineWidth = (1.4 + maxAmp*2.2) * pulseStroke;
+        ctx.fillStyle = capsShade(cD, bo); ctx.fill();  // same teal = same object
+        ctx.strokeStyle = col;                           // axis colour shows what's opening
+        ctx.lineWidth = (1.6 + maxAmp*2.4) * pulseStroke;
         ctx.lineJoin = 'round';
-        if (front && maxAmp > 0.04) { ctx.shadowColor = foldCol; ctx.shadowBlur = 6 + maxAmp*24 + pulseGlow; }
+        if (front && maxAmp > 0.04) { ctx.shadowColor = col; ctx.shadowBlur = 8+maxAmp*26+pulseGlow; }
         ctx.stroke(); ctx.restore();
       });
     }

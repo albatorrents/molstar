@@ -853,6 +853,9 @@ hr.divider{border:none;border-top:1px solid var(--cream-dark);margin:16px 0;}
         <div class="section-title mb-4">Music → Capsid Movement</div>
         <p class="text-sm text-light mb-14">For each frequency band, pick what the capsid does when that part of the music gets loud. Adjust intensity to control how dramatically it moves.</p>
         <div id="assign-rows"></div>
+        <p class="text-sm text-light" style="margin-top:9px;font-style:italic;">
+          💡 Drag the dividers on the Frequency Spectrum (right panel) to adjust the bass, mid and treble frequency ranges.
+        </p>
       </div>
 
       <div class="panel">
@@ -1598,6 +1601,10 @@ const MOVE_OPTIONS = MOVE_OPTIONS_FOLD;
 
 let s3AudioCtx = null, s3Analyser = null, s3AudioConnected = false;
 let s3SpectrumRAF = null, s3PreviewRAF = null;
+// Draggable frequency split points (fraction of total FFT bins, 0–1)
+let freqSplitBassM = 0.020; // bass / mid boundary
+let freqSplitMidT  = 0.150; // mid / treble boundary
+let s3DragH = null;         // 'bm' | 'mt' | null — which divider is being dragged
 
 // Canonical resting orientation for the Stage 3 preview dodecahedron.
 // Y+15° then X-20°: shows the structure from slightly to the right and above,
@@ -1832,10 +1839,10 @@ function s3GetBands() {
   const avg = (s,e)=>{ let sum=0; for(let i=s;i<e;i++) sum+=data[i]; return sum/Math.max(1,e-s)/255; };
   const b = appState.audioBoosts || {bass:1,mid:1,treble:1};
 
-  // Lowered ranges: bass 0–430 Hz, mid 300–3.3 kHz, treble 2.5–11 kHz
-  const rBass   = avg(0,                     Math.floor(bins*0.020)) * b.bass;
-  const rMid    = avg(Math.floor(bins*0.015),Math.floor(bins*0.150)) * b.mid;
-  const rTreble = avg(Math.floor(bins*0.120),Math.floor(bins*0.500)) * b.treble;
+  // Ranges driven by student-adjustable draggable dividers on the spectrum canvas
+  const rBass   = avg(0,                              Math.floor(bins*freqSplitBassM)) * b.bass;
+  const rMid    = avg(Math.floor(bins*freqSplitBassM),Math.floor(bins*freqSplitMidT))  * b.mid;
+  const rTreble = avg(Math.floor(bins*freqSplitMidT), Math.floor(bins*Math.min(freqSplitMidT*3.5, 0.62))) * b.treble;
 
   for (const [k,r] of [['bass',rBass],['mid',rMid],['treble',rTreble]]) {
     s3Peak[k] = Math.max(r, s3Peak[k]*PEAK_D, 0.01);
@@ -1873,29 +1880,93 @@ function startS3Loops() {
     const ctx = sc.getContext('2d');
     const W = sc.width, H = sc.height;
     ctx.clearRect(0,0,W,H);
+
+    const SHOW_FRAC = 0.65; // fraction of FFT bins shown
+    // Divider X positions on the canvas
+    const xBM = (freqSplitBassM / SHOW_FRAC) * W;
+    const xMT = (freqSplitMidT  / SHOW_FRAC) * W;
+
     if (s3Analyser) {
       const data = new Uint8Array(s3Analyser.frequencyBinCount);
       s3Analyser.getByteFrequencyData(data);
-      const numBars = 64, maxBin = Math.floor(data.length*0.65);
+      const numBars = 64, maxBin = Math.floor(data.length * SHOW_FRAC);
       const barW = (W - numBars) / numBars;
-      for (let i=0;i<numBars;i++){
-        const idx = Math.floor(i/numBars*maxBin);
-        const h = (data[idx]/255)*H*0.92;
-        const t = i/numBars;
-        const hue = t<0.15 ? 10 : t<0.5 ? 130 : t<0.75 ? 52 : 270;
-        ctx.fillStyle = `hsla(${hue},65%,52%,0.9)`;
-        ctx.fillRect(i*(barW+1), H-h, barW, h);
+      for (let i = 0; i < numBars; i++) {
+        const idx  = Math.floor(i / numBars * maxBin);
+        const h    = (data[idx] / 255) * H * 0.88;
+        const frac = (i / numBars) * SHOW_FRAC; // FFT fraction for this bar
+        const col  = frac < freqSplitBassM ? '#E8624A'
+                   : frac < freqSplitMidT  ? '#3DAA6A'
+                   :                          '#9B72CF';
+        ctx.fillStyle = col + 'dd';
+        ctx.fillRect(i * (barW + 1), H - h, barW, h);
       }
     } else {
-      ctx.fillStyle = '#e8e0d5';
-      ctx.fillRect(0,0,W,H);
-      ctx.fillStyle = '#b0a89c';
-      ctx.font = '11px Lora, serif';
+      ctx.fillStyle = '#e8e0d5'; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = '#b0a89c'; ctx.font = '11px Lora, serif';
       ctx.textAlign = 'center';
       ctx.fillText('Press ▶ Play to see the spectrum', W/2, H/2+4);
     }
+
+    // ── Draggable divider lines ──────────────────────────────────────────
+    const drawDivider = (x, colL, colR, label) => {
+      // Dashed vertical line
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = colL;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(x, 14); ctx.lineTo(x, H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Drag handle circle
+      ctx.beginPath(); ctx.arc(x, 8, 6.5, 0, Math.PI*2);
+      ctx.fillStyle = 'white'; ctx.fill();
+      ctx.strokeStyle = colL; ctx.lineWidth = 1.8; ctx.stroke();
+      // Hz label
+      ctx.font = 'bold 8px Lora, serif';
+      ctx.textAlign = x > W * 0.85 ? 'right' : x < W * 0.15 ? 'left' : 'center';
+      ctx.fillStyle = colL;
+      ctx.globalAlpha = 1;
+      ctx.fillText(label, x, H - 3);
+      ctx.restore();
+    };
+
+    const hzBM = Math.round(freqSplitBassM * 22050);
+    const hzMT = Math.round(freqSplitMidT  * 22050);
+    drawDivider(xBM, '#E8624A', '#3DAA6A', hzBM >= 1000 ? (hzBM/1000).toFixed(1)+'k' : hzBM+'Hz');
+    drawDivider(xMT, '#9B72CF', '#9B72CF', hzMT >= 1000 ? (hzMT/1000).toFixed(1)+'k' : hzMT+'Hz');
+
     s3SpectrumRAF = requestAnimationFrame(spectrumFrame);
   }
+
+  // ── Spectrum canvas drag interaction ─────────────────────────────────
+  const SHOW_FRAC = 0.65;
+  const scXtoFrac = x => Math.max(0.003, Math.min(0.62, (x / sc.width) * SHOW_FRAC));
+
+  const scPointerDown = (x) => {
+    const xBM = (freqSplitBassM / SHOW_FRAC) * sc.width;
+    const xMT = (freqSplitMidT  / SHOW_FRAC) * sc.width;
+    if (Math.abs(x - xBM) <= Math.abs(x - xMT)) s3DragH = 'bm';
+    else s3DragH = 'mt';
+  };
+  const scPointerMove = (x) => {
+    if (!s3DragH) return;
+    const frac = scXtoFrac(x);
+    if (s3DragH === 'bm') freqSplitBassM = Math.min(frac, freqSplitMidT - 0.025);
+    else                  freqSplitMidT  = Math.max(frac, freqSplitBassM + 0.025);
+  };
+  const canvasX = (e, rect) => (e.clientX - rect.left) * (sc.width / rect.width);
+  const touchX  = (e, rect) => (e.touches[0].clientX - rect.left) * (sc.width / rect.width);
+
+  sc.style.cursor = 'col-resize';
+  sc.addEventListener('mousedown',  e => { scPointerDown(canvasX(e, sc.getBoundingClientRect())); });
+  sc.addEventListener('mousemove',  e => { if(s3DragH) scPointerMove(canvasX(e, sc.getBoundingClientRect())); });
+  sc.addEventListener('mouseup',    () => { s3DragH = null; });
+  sc.addEventListener('mouseleave', () => { s3DragH = null; });
+  sc.addEventListener('touchstart', e => { scPointerDown(touchX(e, sc.getBoundingClientRect())); e.preventDefault(); }, {passive:false});
+  sc.addEventListener('touchmove',  e => { if(s3DragH){ scPointerMove(touchX(e, sc.getBoundingClientRect())); e.preventDefault(); }}, {passive:false});
+  sc.addEventListener('touchend',   () => { s3DragH = null; });
 
   // update scrubber + time displays
   const audioEl = document.getElementById('audio-el');
@@ -3382,11 +3453,11 @@ function danceGetBands() {
   };
   const b = appState.audioBoosts;
 
-  const rawBass   = avg(0,                      Math.floor(bins*0.020)) * b.bass;
-  const rawMid    = avg(Math.floor(bins*0.015),  Math.floor(bins*0.150)) * b.mid;
-  const rawTreble = avg(Math.floor(bins*0.120),  Math.floor(bins*0.500)) * b.treble;
+  const rawBass   = avg(0,                               Math.floor(bins*freqSplitBassM)) * b.bass;
+  const rawMid    = avg(Math.floor(bins*freqSplitBassM), Math.floor(bins*freqSplitMidT))  * b.mid;
+  const rawTreble = avg(Math.floor(bins*freqSplitMidT),  Math.floor(bins*Math.min(freqSplitMidT*3.5, 0.62))) * b.treble;
 
-  const rawBassRaw = avg(0, Math.floor(bins*0.020));
+  const rawBassRaw = avg(0, Math.floor(bins*freqSplitBassM));
   const beat = Math.max(0, rawBassRaw - prevDanceBass * 0.65) * 2.5;
   prevDanceBass = rawBassRaw;
 
@@ -3556,9 +3627,9 @@ function drawFreqViz() {
     open2fold:[232,98,74],   wiggle:[232,196,74],
     pulse:[74,181,232],      spin:[135,206,235],
   };
-  const bassEnd   = Math.floor(bufLen * 0.020);
-  const midEnd    = Math.floor(bufLen * 0.150);
-  const trebleEnd = Math.floor(bufLen * 0.500);
+  const bassEnd   = Math.floor(bufLen * freqSplitBassM);
+  const midEnd    = Math.floor(bufLen * freqSplitMidT);
+  const trebleEnd = Math.floor(bufLen * Math.min(freqSplitMidT*3.5, 0.62));
 
   for (let i = 0; i < BARS; i++) {
     const bin  = Math.floor(i / BARS * bufLen * 0.60);
